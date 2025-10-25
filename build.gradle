@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
+}
+
+group = 'com.hung.arkanoid'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = "21"
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.media']
+}
+
+dependencies {
+    testImplementation(platform('org.junit:junit-bom:5.10.0'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+}
+
+// Thêm cấu hình cho lớp Main
+application {
+    mainClass = 'com.hung.arkanoid.Main'
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
