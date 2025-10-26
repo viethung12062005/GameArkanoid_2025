@@ -1,0 +1,112 @@
+@startuml Arkanoid Game Class Diagram
+
+' Giao diện và màu sắc cho đẹp hơn
+skinparam classAttributeIconSize 0
+skinparam style strictuml
+skinparam handwritten false
+skinparam note {
+    BackgroundColor #LightYellow
+    BorderColor #Black
+}
+
+' --- Lớp cơ sở ---
+abstract class GameObject {
+  # x: double
+  # y: double
+  # width: double
+  # height: double
+  --
+  + {abstract} update(): void
+  + {abstract} render(): void
+}
+
+abstract class MovableObject extends GameObject {
+  # dx: double
+  # dy: double
+  --
+  + move(): void
+}
+
+' --- Các lớp đối tượng cụ thể ---
+class Paddle extends MovableObject {
+  - speed: double
+  - currentPowerUp: PowerUp
+  --
+  + moveLeft(): void
+  + moveRight(): void
+  + applyPowerUp(powerUp: PowerUp): void
+}
+
+class Ball extends MovableObject {
+  - speed: double
+  --
+  + bounceOff(other: GameObject): void
+  + checkCollision(other: GameObject): void
+}
+
+class Brick extends GameObject {
+  - hitPoints: int
+  - type: String
+  --
+  + takeHit(): void
+  + isDestroyed(): boolean
+}
+
+class NormalBrick extends Brick {
+}
+
+class StrongBrick extends Brick {
+}
+
+class PowerUp extends GameObject {
+  - type: String
+  - duration: int
+  --
+  + {abstract} applyEffect(paddle: Paddle): void
+  + {abstract} removeEffect(paddle: Paddle): void
+}
+
+class ExpandPaddlePowerUp extends PowerUp {
+  + applyEffect(paddle: Paddle): void
+  + removeEffect(paddle: Paddle): void
+}
+
+class FastBallPowerUp extends PowerUp {
+  + applyEffect(paddle: Paddle): void
+  + removeEffect(paddle: Paddle): void
+}
+
+' --- Các lớp quản lý ---
+class GameManager {
+  - paddle: Paddle
+  - ball: Ball
+  - bricks: List<Brick>
+  - powerUps: List<PowerUp>
+  - score: int
+  - lives: int
+  - gameState: GameState
+  --
+  + startGame(): void
+  + updateGame(): void
+  + handleInput(): void
+  + checkCollisions(): void
+  + gameOver(): void
+}
+
+class GameView {
+  + draw(obj: GameObject): void
+}
+
+' --- Mối quan hệ ---
+GameManager o-- "1" Paddle
+GameManager o-- "1" Ball
+GameManager o-- "many" Brick
+GameManager o-- "many" PowerUp
+GameManager ..> GameView : uses
+
+note right of GameManager
+  Quản lý toàn bộ logic và
+  trạng thái của trò chơi.
+end note
+
+@enduml
