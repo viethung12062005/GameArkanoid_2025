@@ -25,14 +25,23 @@ import com.hung.arkanoid.model.base.GameObject;
 import com.hung.arkanoid.model.base.MovableObject;
 
 public class Ball extends MovableObject {
+    public static final double BASE_SPEED = 5.0;
+    public static final double BALL_RADIUS = 8.0;
+
     private double speed;
     private int damage;
+
+    private double speedMultiplier = 1.0;
+    private boolean isFireball = false;
+    private boolean isAttachedToPaddle = true;
+
     public Ball() {
         super();
-        this.width = 12;
-        this.height = 12;
-        this.speed = 300;
+        this.width = BALL_RADIUS * 2;
+        this.height = BALL_RADIUS * 2;
+        this.speed = BASE_SPEED;
         this.damage = 1;
+        // default direction up-right
         this.velocityX = speed/Math.sqrt(2);
         this.velocityY = -speed/Math.sqrt(2);
     }
@@ -41,7 +50,7 @@ public class Ball extends MovableObject {
         super(x, y, diameter, diameter, velocityX, velocityY);
         this.damage = damage;
         this.speed = speed;
-        setSpeed(this.speed); // Đảm bảo velocityX/velocityY có magnitude = speed
+        setSpeed(this.speed); // ensure velocity magnitude matches speed
     }
 
     public double getSpeed() {
@@ -53,18 +62,7 @@ public class Ball extends MovableObject {
             throw new IllegalArgumentException("Speed must be >= 0");
         }
         this.speed = speed;
-        double vx = this.velocityX;
-        double vy = this.velocityY;
-        double mag = Math.hypot(vx, vy);
-        if (mag == 0) {
-            // Chọn hướng mặc định khi vận tốc ban đầu là 0 (theo góc 45 độ lên trên bên phải)
-            this.velocityX = speed/Math.sqrt(2);
-            this.velocityY = -speed/Math.sqrt(2);
-        } else {
-            double scale = speed / mag;
-            this.velocityX = vx * scale;
-            this.velocityY = vy * scale;
-        }
+        updateSpeedVectors();
     }
 
     public int getDamage() {
@@ -78,9 +76,86 @@ public class Ball extends MovableObject {
         this.damage = damage;
     }
 
+    public void launch() {
+        if (isAttachedToPaddle) {
+            isAttachedToPaddle = false;
+            double magnitude = BASE_SPEED * speedMultiplier;
+            // launch upwards
+            this.velocityY = -Math.abs(magnitude);
+            // keep x velocity if previously set, otherwise give a slight x
+            if (this.velocityX == 0) {
+                this.velocityX = magnitude / Math.sqrt(2);
+            } else {
+                // scale to magnitude while preserving direction
+                updateSpeedVectors();
+            }
+        }
+    }
+
+    public void setSpeedMultiplier(double multiplier) {
+        // clamp between 0.5 and 2.0
+        double clamped = Math.max(0.5, Math.min(2.0, multiplier));
+        this.speedMultiplier = clamped;
+        updateSpeedVectors();
+    }
+
+    private void updateSpeedVectors() {
+        double mag = BASE_SPEED * speedMultiplier;
+        double vx = this.velocityX;
+        double vy = this.velocityY;
+        double curMag = Math.hypot(vx, vy);
+        if (curMag == 0) {
+            // default upwards-right
+            this.velocityX = mag / Math.sqrt(2);
+            this.velocityY = -mag / Math.sqrt(2);
+        } else {
+            double scale = mag / curMag;
+            this.velocityX = vx * scale;
+            this.velocityY = vy * scale;
+        }
+    }
+
+    public void activateFireball(boolean active) {
+        this.isFireball = active;
+    }
+
+    public boolean isFireball() {
+        return isFireball;
+    }
+
+    public void reset() {
+        this.isAttachedToPaddle = true;
+        this.speedMultiplier = 1.0;
+        this.isFireball = false;
+        // reset velocity to default
+        this.velocityX = BASE_SPEED/Math.sqrt(2);
+        this.velocityY = -BASE_SPEED/Math.sqrt(2);
+    }
+
+    public boolean isAttachedToPaddle() {
+        return isAttachedToPaddle;
+    }
+
+    public void setAttachedToPaddle(boolean attached) {
+        this.isAttachedToPaddle = attached;
+        if (attached) {
+            // zero velocities while attached
+            this.velocityX = 0;
+            this.velocityY = 0;
+        }
+    }
+
+    public void reverseDx() {
+        this.velocityX = -this.velocityX;
+    }
+
+    public void reverseDy() {
+        this.velocityY = -this.velocityY;
+    }
+
     public void bounceOff(GameObject other) {
         // Simple bounce: invert Y velocity by default
-        this.velocityY = -this.velocityY;
+        this.reverseDy();
     }
 
     public boolean checkCollision(GameObject other) {
@@ -89,15 +164,19 @@ public class Ball extends MovableObject {
 
     @Override
     public void update(double delta) {
-        super.move(delta);
-        // Keep constant speed magnitude
-        double vx = this.velocityX;
-        double vy = this.velocityY;;
-        double mag = Math.sqrt(vx * vx + vy * vy);
-        if (mag == 0) return;
-        double scale = speed / mag;
-        this.velocityX = vx * scale;
-        this.velocityY = vy * scale;
+        if (!isAttachedToPaddle) {
+            super.update(delta);
+            // keep constant speed magnitude according to current multiplier
+            double vx = this.velocityX;
+            double vy = this.velocityY;
+            double mag = Math.hypot(vx, vy);
+            double desired = BASE_SPEED * speedMultiplier;
+            if (mag != 0) {
+                double scale = desired / mag;
+                this.velocityX = vx * scale;
+                this.velocityY = vy * scale;
+            }
+        }
     }
 
     @Override
