@@ -24,13 +24,25 @@ package com.hung.arkanoid.model.entities;
 import com.hung.arkanoid.model.base.MovableObject;
 
 public class Paddle extends MovableObject {
+    public static final double BASE_WIDTH = 100.0;
+    public static final double BASE_HEIGHT = 20.0;
+    public static final double PADDLE_SPEED = 8.0;
+
     private double speed;
+
+    private boolean lasersActive = false;
+    private boolean catchActive = false;
 
     public Paddle() {
         super();
         this.speed = 300;
-        this.width = 80;
-        this.height = 20;
+        this.width = BASE_WIDTH;
+        this.height = BASE_HEIGHT;
+    }
+
+    public Paddle(double x, double y) {
+        super(x, y, BASE_WIDTH, BASE_HEIGHT, 0, 0);
+        this.speed = 300;
     }
 
     public Paddle(double x, double y, double width, double height, double speed) {
@@ -46,12 +58,54 @@ public class Paddle extends MovableObject {
         this.speed = speed;
     }
 
+    // Movement controls using PADDLE_SPEED units per frame (or per update scale)
     public void moveLeft() {
-        this.velocityX = -Math.abs(speed);
+        this.velocityX = -Math.abs(PADDLE_SPEED);
     }
 
     public void moveRight() {
-        this.velocityX = Math.abs(speed);
+        this.velocityX = Math.abs(PADDLE_SPEED);
+    }
+
+    public void stopMoving() {
+        this.velocityX = 0;
+    }
+
+    public void expand() {
+        double centerX = this.x + this.width / 2.0;
+        this.width = BASE_WIDTH * 1.5;
+        // keep center position
+        this.x = centerX - this.width / 2.0;
+    }
+
+    public void shrink() {
+        double centerX = this.x + this.width / 2.0;
+        this.width = BASE_WIDTH * 0.75;
+        this.x = centerX - this.width / 2.0;
+    }
+
+    public void reset() {
+        double centerX = this.x + this.width / 2.0;
+        this.width = BASE_WIDTH;
+        this.x = centerX - this.width / 2.0;
+        this.lasersActive = false;
+        this.catchActive = false;
+    }
+
+    public boolean areLasersActive() {
+        return lasersActive;
+    }
+
+    public void setLasersActive(boolean lasersActive) {
+        this.lasersActive = lasersActive;
+    }
+
+    public boolean isCatchActive() {
+        return catchActive;
+    }
+
+    public void setCatchActive(boolean catchActive) {
+        this.catchActive = catchActive;
     }
 
     @Override
@@ -59,8 +113,8 @@ public class Paddle extends MovableObject {
 
     @Override
     public void update(double delta) {
-        // Move horizontally according to velocity and delta
+        // Move according to velocity and delta (delta is expected in seconds or frame units)
         super.update(delta);
-        // TODO: clamp position to screen bounds (GameManager will provide screen size)
+        // Optionally clamp position to screen bounds (caller can enforce screen width)
     }
 }
