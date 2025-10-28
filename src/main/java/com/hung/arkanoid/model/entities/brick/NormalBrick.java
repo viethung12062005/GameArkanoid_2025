@@ -1,11 +1,5 @@
 package com.hung.arkanoid.model.entities.brick;
 
-import com.hung.arkanoid.game.GameManager;
-import com.hung.arkanoid.model.entities.Ball;
-import com.hung.arkanoid.model.entities.powerup.PowerUpType;
-
-import java.util.Random;
-
 /*
  * ============================================================================
  * Project   : Arkanoid_OOP2025
@@ -28,29 +22,14 @@ import java.util.Random;
  */
 
 public class NormalBrick extends Brick {
-    private static final Random RNG = new Random();
-
-    public NormalBrick(double x, double y) {
-        super(x, y, BrickType.NORMAL);
+    public NormalBrick() {
+        super();
+        this.width = 60;
+        this.height = 20;
         this.hitPoints = 1;
     }
 
-    @Override
-    public int getScoreValue() {
-        return 10;
-    }
-
-    @Override
-    public void onImpact(GameManager gameManager, Ball ball) {
-        // No special behavior
-    }
-
-    @Override
-    public PowerUpType getPowerUpToSpawn() {
-        if (isDestroyed() && RNG.nextDouble() < 0.2) {
-            PowerUpType[] types = PowerUpType.values();
-            return types[RNG.nextInt(types.length)];
-        }
-        return null;
+    public NormalBrick(double x, double y) {
+        super(x, y, 60, 20, 1);
     }
 }
