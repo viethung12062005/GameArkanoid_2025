@@ -1,38 +1,43 @@
 package com.hung.arkanoid.model.entities.brick;
 
-/*
- * ============================================================================
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model.entities.brick
- * File Name : BrickFactory.java
- * Created On: 10/25/2025 at 9:19 PM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- *
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the BrickFactory class which is responsible for handling.
- *
- *
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
- */
-
+import com.hung.arkanoid.game.GameManager;
 import com.hung.arkanoid.model.base.GameObject;
+import com.hung.arkanoid.model.entities.Ball;
+import com.hung.arkanoid.model.entities.powerup.PowerUpType;
 
-public class Brick extends GameObject {
+public abstract class Brick extends GameObject {
+    public static final double BRICK_WIDTH = 70;
+    public static final double BRICK_HEIGHT = 25;
+
     protected int hitPoints;
+    protected BrickType type;
+    protected boolean destroyed = false;
 
-    public Brick() {
-        super();
+    public Brick(double x, double y, BrickType type) {
+        super(x, y, BRICK_WIDTH, BRICK_HEIGHT);
+        this.type = type;
     }
 
-    public Brick(double x, double y, double width, double height, int hitPoints) {
-        super(x, y, width, height);
-        this.hitPoints = hitPoints;
+    public void takeHit(GameManager gameManager, Ball ball) {
+        if (isUnbreakable()) return;
+        this.hitPoints -= (ball != null ? ball.getDamage() : 1);
+        if (this.hitPoints <= 0) {
+            this.destroyed = true;
+        }
+    }
+
+    public abstract PowerUpType getPowerUpToSpawn();
+
+    public abstract void onImpact(GameManager gameManager, Ball ball);
+
+    public abstract int getScoreValue();
+
+    public boolean isDestroyed() {
+        return destroyed;
+    }
+
+    public void setDestroyed(boolean destroyed) {
+        this.destroyed = destroyed;
     }
 
     public int getHitPoints() {
@@ -43,24 +48,17 @@ public class Brick extends GameObject {
         this.hitPoints = hitPoints;
     }
 
-    public boolean takeHit(int damage) {
-        if (hitPoints <= 0) {
-            return false;
-        }
-        this.hitPoints -= damage;
-        return isDestroyed();
+    public BrickType getType() {
+        return type;
     }
 
-    public boolean isDestroyed() {
-        return hitPoints <= 0;
-    }
-
-
-    @Override
-    public void update(double delta) {
+    public boolean isUnbreakable() {
+        return this.type == BrickType.UNBREAKABLE;
     }
 
     @Override
-    public void render() {
-    }
+    public void update(double delta) {}
+
+    @Override
+    public void render() {}
 }

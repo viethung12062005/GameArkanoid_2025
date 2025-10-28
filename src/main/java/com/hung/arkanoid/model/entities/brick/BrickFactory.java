@@ -32,6 +32,11 @@ public class BrickFactory {
 
     static {
         // Register default brick types
+        register("NORMAL", NormalBrick::new);
+        register("STRONG", StrongBrick::new);
+        register("UNBREAKABLE", UnbreakableBrick::new);
+        register("POWERUP_GUARANTEED", PowerUpBrick::new);
+        register("EXPLOSIVE", ExplosiveBrick::new);
     }
 
     private BrickFactory() {
@@ -39,7 +44,7 @@ public class BrickFactory {
     }
 
     public static void register(String key, BiFunction<Double, Double, Brick> constructor) {
-        registry.put(key.toLowerCase(Locale.ROOT), constructor);
+        registry.put(key.toUpperCase(Locale.ROOT), constructor);
     }
 
     public static void register(String key, Class<? extends Brick> brickClass){
@@ -58,10 +63,16 @@ public class BrickFactory {
             return creator.apply(x, y);
         }
 
-        // fallback to enum if not found in registry
         try {
             BrickType type = BrickType.valueOf(normalizedKey);
-            return type.create(x, y);
+            // fallback: switch-based creation
+            return switch (type) {
+                case NORMAL -> new NormalBrick(x, y);
+                case STRONG -> new StrongBrick(x, y);
+                case UNBREAKABLE -> new UnbreakableBrick(x, y);
+                case POWERUP_GUARANTEED -> new PowerUpBrick(x, y);
+                case EXPLOSIVE -> new ExplosiveBrick(x, y);
+            };
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Unknown brick type: " + key);
         }
