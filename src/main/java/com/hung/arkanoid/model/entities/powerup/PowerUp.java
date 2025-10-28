@@ -23,14 +23,18 @@ package com.hung.arkanoid.model.entities.powerup;
 
 import com.hung.arkanoid.game.GameManager;
 import com.hung.arkanoid.model.base.MovableObject;
+import com.hung.arkanoid.view.SpriteManager;
 
 public abstract class PowerUp extends MovableObject {
-    public static final double POWERUP_WIDTH = 40;
-    public static final double POWERUP_HEIGHT = 20;
-    public static final double FALL_SPEED = 2.5;
+    public static final double POWERUP_WIDTH = 50;
+    public static final double POWERUP_HEIGHT = 25;
+    public static final double FALL_SPEED = 250;
 
     protected PowerUpType type;
     private boolean consumed = false;
+
+    // animation state (5x4 grid typical for bonus map: 5 cols x 4 rows = 20 frames)
+    private final SpriteManager.AnimatedSpriteState animState = new SpriteManager.AnimatedSpriteState(5, 4);
 
     public PowerUp(double x, double y, PowerUpType type) {
         // initialize with vertical fall speed
@@ -47,6 +51,8 @@ public abstract class PowerUp extends MovableObject {
     public void update(double delta) {
         // use MovableObject's update which moves according to velocity
         super.update(delta);
+        // advance animation counters based on elapsed seconds
+        animState.update(delta);
     }
 
     @Override
@@ -62,7 +68,15 @@ public abstract class PowerUp extends MovableObject {
         this.consumed = consumed;
     }
 
+    // convenience
+    public void consume() { setConsumed(true); }
+
     public PowerUpType getType() {
         return type;
+    }
+
+    // expose animation index for GameView
+    public int getAnimationIndex() {
+        return animState.getFrameIndex();
     }
 }

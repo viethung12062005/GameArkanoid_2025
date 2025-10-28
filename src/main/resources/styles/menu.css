@@ -1,0 +1,84 @@
+#rootMenu {
+    -fx-background-image: url('/images/Arcade - Arkanoid - Backgrounds - Fields.png');
+    -fx-background-size: cover;
+}
+
+#titleLabel {
+    -fx-font-family: "Impact", "Arial Black", sans-serif;
+    -fx-font-size: 72px;
+    -fx-text-fill: linear-gradient(from 0% 0% to 0% 100%, #FFFFFF, #B0B0B0);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 8, 0.5, 2, 2);
+}
+
+.button {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #f0f0f0, #d0d0d0);
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-border-color: #505050;
+    -fx-border-width: 2px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 8;
+    -fx-pref-width: 200px;
+    -fx-padding: 10 20;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #ffffff, #e0e0e0);
+}
+
+.button:pressed {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #d0d0d0, #f0f0f0);
+}
+
+#levelContainer {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+    -fx-padding: 20;
+    -fx-background-radius: 15;
+}
+
+/* Level button styling */
+.level-button {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #2A9DF4, #1B6FB8);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-color: #08304b;
+    -fx-border-width: 2px;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-padding: 6 10;
+}
+.level-button:disabled {
+    -fx-opacity: 0.45;
+}
+
+/* Pause overlay buttons using existing .button style but with accent */
+.pause-overlay .button {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #f5a623, #d47800);
+    -fx-text-fill: white;
+}
+
+/* Pause overlay box and title */
+.pause-overlay {
+    -fx-alignment: center;
+}
+.pause-overlay .pause-box {
+    -fx-background-color: rgba(0,0,0,0.4);
+    -fx-padding: 24;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 12, 0.5, 0, 4);
+}
+.pause-overlay .pause-title {
+    -fx-font-size: 40px;
+    -fx-text-fill: linear-gradient(from 0% 0% to 0% 100%, #ffffff, #cfcfcf);
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.85), 6, 0.5, 0, 2);
+    -fx-padding: 0 0 8 0;
+}
+.pause-overlay .pause-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(255,255,255,0.9);
+    -fx-padding: 0 0 6 0;
+}
+.pause-overlay .pause-button {
+    -fx-pref-width: 160px;
+}
