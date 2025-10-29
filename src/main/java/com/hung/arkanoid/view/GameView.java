@@ -288,7 +288,6 @@ public class GameView {
             switch (b.getType()) {
                 case UNBREAKABLE -> img = goldBlockImg;
                 case STRONG -> img = grayBlockImg;
-                case POWERUP_GUARANTEED -> img = yellowBlockImg;
                 case EXPLOSIVE -> img = redBlockImg;
                 default -> img = blueBlockImg;
             }

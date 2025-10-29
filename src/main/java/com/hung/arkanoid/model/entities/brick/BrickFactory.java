@@ -35,7 +35,6 @@ public class BrickFactory {
         register("NORMAL", NormalBrick::new);
         register("STRONG", StrongBrick::new);
         register("UNBREAKABLE", UnbreakableBrick::new);
-        register("POWERUP_GUARANTEED", PowerUpBrick::new);
         register("EXPLOSIVE", ExplosiveBrick::new);
     }
 
@@ -70,7 +69,6 @@ public class BrickFactory {
                 case NORMAL -> new NormalBrick(x, y);
                 case STRONG -> new StrongBrick(x, y);
                 case UNBREAKABLE -> new UnbreakableBrick(x, y);
-                case POWERUP_GUARANTEED -> new PowerUpBrick(x, y);
                 case EXPLOSIVE -> new ExplosiveBrick(x, y);
             };
         } catch (IllegalArgumentException ex) {
