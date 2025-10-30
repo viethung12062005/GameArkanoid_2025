@@ -20,5 +20,14 @@ package com.hung.arkanoid.model.entities.powerup;
  *     Version 1.0  - Initial release.
  * ============================================================================
  */
-public class PowerUp {
+
+import com.hung.arkanoid.model.base.MovableObject;
+
+public abstract class PowerUp extends MovableObject {
+    public PowerUp(double x, double y, double width, double height, double velocityX, double velocityY) {
+        super(x, y, width, height, velocityX, velocityY);
+    }
+
+    public abstract void activate(); // Kích hoạt hiệu ứng của PowerUp
 }
+

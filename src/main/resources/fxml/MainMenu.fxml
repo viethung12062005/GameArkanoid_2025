@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.hung.arkanoid.controller.MenuController">
+    <children>
+        <ImageView fitWidth="800" fitHeight="600" preserveRatio="true" />
+        <VBox alignment="CENTER" spacing="20">
+            <children>
+                <Label text="ARKANOID" style="-fx-font-size: 36px; -fx-text-fill: white;" />
+                <Button text="START GAME" fx:id="startButton" onAction="#onStartButtonClick" />
+                <Button text="HIGH SCORES" fx:id="scoresButton" onAction="#onScoresButtonClick" />
+                <Button text="EXIT" fx:id="exitButton" onAction="#onExitButtonClick" />
+            </children>
+        </VBox>
+    </children>
+</StackPane>
