@@ -16,6 +16,8 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+
 public class Main extends Application {
     private Stage primaryStage;
     private Scene menuScene;

@@ -26,7 +26,6 @@ public class GameManager {
     // Use world dimensions matching the window (800x600)
     public static final double SCREEN_WIDTH = 800.0;
     public static final double SCREEN_HEIGHT = 600.0;
-    public static final double BARRIER_Y = SCREEN_HEIGHT - 60.0;
 
     private final Paddle paddle;
     private final Ball ball;
@@ -46,8 +45,6 @@ public class GameManager {
     private final List<PowerUp> powerUps = new ArrayList<>();
 
     private boolean barrierActive = false;
-    // internal flag to avoid consuming the barrier multiple times in one pass
-    private boolean barrierJustUsed = false;
 
     // Torpedoes
     private final List<com.hung.arkanoid.model.entities.Torpedo> torpedoes = new ArrayList<>();
@@ -208,13 +205,7 @@ public class GameManager {
     public void addBrick(Brick brick) { if (brick != null) bricks.add(brick); }
 
     // Added setter/getter for barrierActive (was missing and caused compile errors)
-    public void setBarrierActive(boolean active) {
-        this.barrierActive = active;
-        if (!active) {
-            // reset flag when barrier turns off
-            this.barrierJustUsed = false;
-        }
-    }
+    public void setBarrierActive(boolean active) { this.barrierActive = active; }
     public boolean isBarrierActive() { return this.barrierActive; }
 
     /**
@@ -231,37 +222,27 @@ public class GameManager {
 
         // Paddle movement: mouse or keyboard
         if (isMouseControlled) {
+            // center paddle on mouse target X
             paddle.setX(paddleTargetX - paddle.getWidth() / 2.0);
         } else {
+            // keyboard-controlled
             paddle.update(deltaSeconds);
         }
 
         // Ensure paddle is inside screen AFTER moving
         checkPaddleBounds();
 
-        // Ball logic
+        // Ball follows paddle if attached; otherwise perform movement with swept collision support
         double ballPrevCX = 0, ballPrevCY = 0;
         if (ball.isAttachedToPaddle()) {
-            // Khi bóng dính vào vợt, chỉ cần cập nhật vị trí theo vợt
             ball.setX(paddle.getX() + paddle.getWidth() / 2 - ball.getWidth() / 2);
             ball.setY(paddle.getY() - ball.getHeight() - 1);
-
-            // CHỈ kiểm tra va chạm tường để đảm bảo bóng không bị kéo ra khỏi màn hình
-            checkWallCollisions();
         } else {
-            // Khi bóng rời vợt: tính toán vật lý
+            // record previous center (convert from left/top to center)
             ballPrevCX = ball.getX() + ball.getWidth() * 0.5;
             ballPrevCY = ball.getY() + ball.getHeight() * 0.5;
-
+            // move ball position according to velocity
             ball.update(deltaSeconds);
-
-            // Tính toán va chạm với tọa độ Mới và Cũ (Swept Collision)
-            double ballNewCX = ball.getX() + ball.getWidth() * 0.5;
-            double ballNewCY = ball.getY() + ball.getHeight() * 0.5;
-
-            checkWallCollisions();
-            checkPaddleCollisions(ballPrevCX, ballPrevCY, ballNewCX, ballNewCY);
-            checkBrickCollisions(ballPrevCX, ballPrevCY, ballNewCX, ballNewCY);
         }
 
         // update bricks
@@ -273,19 +254,37 @@ public class GameManager {
         // update visual effects
         updateEffects();
 
-        // update torpedoes
+        // update torpedoes with deltaSeconds and remove off-screen
         Iterator<com.hung.arkanoid.model.entities.Torpedo> tIt = torpedoes.iterator();
         while (tIt.hasNext()) {
             com.hung.arkanoid.model.entities.Torpedo t = tIt.next();
             t.update(deltaSeconds);
             if (t.getY() + t.getHeight() < 0) tIt.remove();
         }
+
+        // handle torpedo collisions (bricks/enemies)
         handleTorpedoCollisions();
 
         // timed effects
         updateActiveEffects(deltaSeconds);
 
-        // check level cleared
+        // collisions (use swept test between previous and current ball positions when applicable)
+        if (!ball.isAttachedToPaddle()) {
+            double ballNewCX = ball.getX() + ball.getWidth() * 0.5;
+            double ballNewCY = ball.getY() + ball.getHeight() * 0.5;
+             // walls
+             checkWallCollisions();
+             // paddle and bricks using swept detection
+            checkPaddleCollisions(ballPrevCX, ballPrevCY, ballNewCX, ballNewCY);
+            checkBrickCollisions(ballPrevCX, ballPrevCY, ballNewCX, ballNewCY);
+         } else {
+            // no movement -> still check walls/paddle normally
+            checkWallCollisions();
+            checkPaddleCollisions();
+            checkBrickCollisions();
+        }
+
+        // check level cleared: when only unbreakable bricks remain
         boolean cleared = bricks.stream().allMatch(Brick::isUnbreakable);
         if (cleared) {
             setState(GameState.LEVEL_CLEARED);
@@ -347,22 +346,14 @@ public class GameManager {
     private void checkBrickCollisions(double x0, double y0, double x1, double y1) {
         if (ball == null) return;
         double radius = ball.getWidth() * 0.5;
+        // We'll iterate: the ball may hit several bricks in one move; handle sequentially
         double fx0 = x0, fy0 = y0, fx1 = x1, fy1 = y1;
-
-        int loopCount = 0;
-        final int MAX_LOOPS = 10;
-        // Danh sách gạch đã xử lý trong frame này để tránh va chạm kép
-        List<Brick> processedBricksInFrame = new ArrayList<>();
-
         while (true) {
-            if (loopCount++ >= MAX_LOOPS) break;
-
             Brick nearestBrick = null;
             SweepResult nearest = null;
-
-            // Tìm va chạm gần nhất
+            // find earliest hit among bricks
             for (Brick b : bricks) {
-                if (b.isDestroyed() || (b.isUnbreakable() && ball.isFireball())) continue;
+                if (b.isDestroyed() || b.isUnbreakable() && ball.isFireball()) continue; // fireball passes through non-unbreakable? keep logic
                 double bx0 = b.getX();
                 double by0 = b.getY();
                 SweepResult res = computeSweepAgainstRect(fx0, fy0, fx1, fy1, radius, bx0, by0, b.getWidth(), b.getHeight());
@@ -370,9 +361,10 @@ public class GameManager {
                     if (nearest == null || res.t < nearest.t) { nearest = res; nearestBrick = b; }
                 }
             }
-            if (nearest == null) break;
+            if (nearest == null) break; // no hit
 
-            // Xử lý va chạm đồng thời (góc)
+            // process hit(s) with nearestBrick at nearest.hitX/Y
+            // Collect all bricks hit at the same earliest time (to handle corner-double-hits)
             final double TOL = 1e-6;
             List<Brick> hitBricks = new ArrayList<>();
             List<SweepResult> hitResults = new ArrayList<>();
@@ -385,34 +377,26 @@ public class GameManager {
                 }
             }
 
-            boolean combinedInvX = false, combinedInvY = false;
-            boolean anyNewHitProcessed = false;
+            // First, call onImpact for all hit bricks (some may trigger explosions/etc.)
+            for (Brick hb : hitBricks) {
+                try { hb.onImpact(this, ball); } catch (Exception ex) { System.err.println("Error onImpact: " + ex.getMessage()); }
+            }
 
+            // Then apply hits and collect combined reflection flags and scoring
+            boolean combinedInvX = false, combinedInvY = false;
             for (int i = 0; i < hitBricks.size(); i++) {
                 Brick hb = hitBricks.get(i);
-
-                // Nếu đã xử lý gạch này rồi thì bỏ qua để tránh hit lần 2 trong cùng 1 frame
-                if (processedBricksInFrame.contains(hb)) continue;
-                processedBricksInFrame.add(hb);
-                anyNewHitProcessed = true;
-
                 SweepResult hr = hitResults.get(i);
-                try { hb.onImpact(this, ball); } catch (Exception ex) { System.err.println("Error onImpact: " + ex.getMessage()); }
-
                 boolean wasDestroyedBefore = hb.isDestroyed();
                 hb.takeHit(this, ball);
-
                 if (hr.inverseVx) combinedInvX = true;
                 if (hr.inverseVy) combinedInvY = true;
-
                 try {
-                    if (hb.isUnbreakable() || (!wasDestroyedBefore && !hb.isDestroyed())) soundManager.playHardBrickHit();
-                    else soundManager.playBlockHit();
+                    if (hb.isUnbreakable() || (!wasDestroyedBefore && !hb.isDestroyed())) soundManager.playHardBrickHit(); else soundManager.playBlockHit();
                 } catch (Exception ignored) {}
-
                 if (hb.isDestroyed()) {
                     score += hb.getScoreValue();
-                    com.hung.arkanoid.model.entities.powerup.PowerUpType pt = hb.getPowerUpToSpawn();
+                    PowerUpType pt = hb.getPowerUpToSpawn();
                     if (pt != null) spawnPowerUp(hb, pt);
                     if (hb.getType() == com.hung.arkanoid.model.entities.brick.BrickType.EXPLOSIVE) {
                         try { soundManager.playExplosion(); } catch (Exception ignored) {}
@@ -420,24 +404,67 @@ public class GameManager {
                 }
             }
 
-            // Phản xạ
-            if (anyNewHitProcessed) {
-                if (!(ball.isFireball() && !nearestBrick.isUnbreakable())) {
-                    if (combinedInvX) ball.setVelocityX(-ball.getVelocityX());
-                    if (combinedInvY) ball.setVelocityY(-ball.getVelocityY());
-                }
+            // reflect velocity components according to combined flags
+            if (!(ball.isFireball() && !nearestBrick.isUnbreakable())) {
+                if (combinedInvX) ball.setVelocityX(-ball.getVelocityX());
+                if (combinedInvY) ball.setVelocityY(-ball.getVelocityY());
             }
 
+            // prepare for next iteration: move origin to hit point, set next target to corrected point
             fx0 = nearest.hitX;
             fy0 = nearest.hitY;
             fx1 = nearest.correctedX;
             fy1 = nearest.correctedY;
-
+            // if the corrected vector is negligible, stop
             if (Math.hypot(fx1 - fx0, fy1 - fy0) < 1e-6) break;
         }
 
+        // finally set ball position to last fx1,fy1 (converted from center to left/top)
         ball.setX(fx1 - ball.getWidth() * 0.5);
         ball.setY(fy1 - ball.getHeight() * 0.5);
+         // cleanup destroyed bricks
+         bricks.removeIf(Brick::isDestroyed);
+    }
+
+    // Keep a simple no-arg brick collision handler for compatibility with earlier code paths
+    private void checkBrickCollisions() {
+        if (ball == null) return;
+        Iterator<Brick> it = bricks.iterator();
+        while (it.hasNext()) {
+            Brick brick = it.next();
+            if (ball.intersects(brick)) {
+                // 1. Apply impact/effects
+                brick.onImpact(this, ball);
+                // 2. Take hit
+                boolean wasDestroyedBefore = brick.isDestroyed();
+                brick.takeHit(this, ball);
+
+                // play block hit or hard hit
+                try {
+                    if (brick.isUnbreakable() || (!wasDestroyedBefore && !brick.isDestroyed())) {
+                        soundManager.playHardBrickHit();
+                    } else {
+                        soundManager.playBlockHit();
+                    }
+                } catch (Exception ignored) {}
+
+                // 3. Bounce logic
+                if (!(ball.isFireball() && !brick.isUnbreakable())) {
+                    ball.reverseDy();
+                }
+                // 4. If destroyed, award points and maybe spawn powerup
+                if (brick.isDestroyed()) {
+                    score += brick.getScoreValue();
+                    com.hung.arkanoid.model.entities.powerup.PowerUpType typeToSpawn = brick.getPowerUpToSpawn();
+                    if (typeToSpawn != null) spawnPowerUp(brick, typeToSpawn);
+                    // explosive sound if needed
+                    if (brick.getType() == com.hung.arkanoid.model.entities.brick.BrickType.EXPLOSIVE) {
+                        try { soundManager.playExplosion(); } catch (Exception ignored) {}
+                    }
+                }
+                break;
+            }
+        }
         bricks.removeIf(Brick::isDestroyed);
     }
 
@@ -445,81 +472,68 @@ public class GameManager {
         if (ball == null) return;
         if (ball.getX() <= 0 || ball.getX() + ball.getWidth() >= SCREEN_WIDTH) ball.reverseDx();
         if (ball.getY() <= 0) ball.reverseDy();
-
-        double ballBottom = ball.getY() + ball.getHeight();
-
-        // Barrier collision: treat barrier as a horizontal line at BARRIER_Y
-        if (barrierActive && !ball.isAttachedToPaddle()) {
-            // if the ball is moving downward and crosses the barrier line this frame
-            boolean movingDown = ball.getVelocityY() > 0;
-            double prevBottom = ballBottom - ball.getVelocityY(); // approximate previous position from current velocity
-            if (movingDown && prevBottom <= BARRIER_Y && ballBottom >= BARRIER_Y) {
-                // snap the ball to just above the barrier and bounce up
-                ball.setY(BARRIER_Y - ball.getHeight() - 1);
+        if (ball.getY() + ball.getHeight() >= SCREEN_HEIGHT) {
+            // ball fell
+            if (barrierActive) {
                 ball.reverseDy();
-                // consume the barrier once
                 setBarrierActive(false);
-                barrierJustUsed = true;
-                return; // we've already handled this frame's fall
+            } else {
+                lives--;
+                if (lives <= 0) {
+                    try { soundManager.playGameOver(); } catch (Exception ignored) {}
+                    setState(GameState.GAME_OVER);
+                } else {
+                    resetAfterLifeLost();
+                }
             }
         }
-
-        // Bottom of screen: lose a life only if barrier is not active (or just consumed)
-        if (ballBottom >= SCREEN_HEIGHT) {
-            if (barrierActive && !barrierJustUsed) {
-                // Safety net: if for some reason we didn't detect the crossing, still bounce once
-                ball.setY(SCREEN_HEIGHT - ball.getHeight() - 1);
-                ball.reverseDy();
-                setBarrierActive(false);
-                barrierJustUsed = true;
-            } else {
-                 lives--;
-                 if (lives <= 0) {
-                     try { soundManager.playGameOver(); } catch (Exception ignored) {}
-                     setState(GameState.GAME_OVER);
-                 } else {
-                     resetAfterLifeLost();
-                 }
-             }
-         }
     }
+
+    private void checkPaddleCollisions() { checkPaddleCollisions(0,0,0,0); }
 
     private void checkPaddleCollisions(double x0, double y0, double x1, double y1) {
         if (ball == null || paddle == null) return;
-
+        if (x1 == 0 && y1 == 0 && x0 == 0 && y0 == 0) {
+            // fallback to simple intersect
+            if (!ball.intersects(paddle)) return;
+            try { soundManager.playPaddleHit(); } catch (Exception ignored) {}
+            double relative = ((ball.getX() + ball.getWidth() / 2.0) - (paddle.getX() + paddle.getWidth() / 2.0)) / (paddle.getWidth() / 2.0);
+            relative = Math.max(-1, Math.min(1, relative));
+            double maxAngle = Math.toRadians(75);
+            double angle = relative * maxAngle;
+            double speed = Math.hypot(ball.getVelocityX(), ball.getVelocityY());
+            ball.setVelocityX(speed * Math.sin(angle));
+            ball.setVelocityY(-Math.abs(speed * Math.cos(angle)));
+            if (paddle.isCatchActive()) {
+                ball.setAttachedToPaddle(true);
+                ball.setX(paddle.getX() + paddle.getWidth() / 2 - ball.getWidth() / 2);
+                ball.setY(paddle.getY() - ball.getHeight() - 1);
+            }
+            return;
+        }
         double radius = ball.getWidth() * 0.5;
-
-        // 1. Tính toán va chạm quét (Swept AABB)
         SweepResult res = computeSweepAgainstRect(x0, y0, x1, y1, radius, paddle.getX(), paddle.getY(), paddle.getWidth(), paddle.getHeight());
-
-        if (res == null) return; // Không có va chạm
-
-        // 2. Xử lý âm thanh
+        if (res == null) return;
+        // hit detected
         try { soundManager.playPaddleHit(); } catch (Exception ignored) {}
-
-        // 3. Xử lý kỹ năng "Catch" (Dính bóng)
+        // sticky / catch
         if (paddle.isCatchActive()) {
             ball.setAttachedToPaddle(true);
             ball.setX(paddle.getX() + paddle.getWidth() / 2 - ball.getWidth() / 2);
             ball.setY(paddle.getY() - ball.getHeight() - 1);
             return;
         }
-
-        // 4. Tính toán góc nảy (Bounce Angle)
-        // Dựa vào vị trí bóng chạm vào vợt: Chạm càng ra mép, góc nảy càng lớn
+        // influence by paddle movement: preserve previous behavior by adjusting angle
+        double pbx = paddle.getX();
+        // compute relative hit pos
         double rel = (res.hitX - (paddle.getX() + paddle.getWidth() / 2.0)) / (paddle.getWidth() / 2.0);
-        rel = Math.max(-1, Math.min(1, rel)); // Kẹp giá trị trong khoảng [-1, 1]
-
-        double maxAngle = Math.toRadians(75); // Góc nảy tối đa 75 độ
+        rel = Math.max(-1, Math.min(1, rel));
+        double maxAngle = Math.toRadians(75);
         double angle = rel * maxAngle;
         double speed = Math.hypot(ball.getVelocityX(), ball.getVelocityY());
-
-        // Cập nhật vận tốc mới
         ball.setVelocityX(speed * Math.sin(angle));
-        ball.setVelocityY(-Math.abs(speed * Math.cos(angle))); // Luôn nảy lên trên
-
-        // 5. Đẩy bóng ra vị trí an toàn (Corrected Position)
-        // Quan trọng: Dùng tọa độ đã sửa từ thuật toán quét để tránh bóng bị kẹt trong vợt
+        ball.setVelocityY(-Math.abs(speed * Math.cos(angle)));
+        // position ball at corrected point (converted center -> left/top)
         ball.setX(res.correctedX - ball.getWidth() * 0.5);
         ball.setY(res.correctedY - ball.getHeight() * 0.5);
     }
@@ -542,46 +556,29 @@ public class GameManager {
         double dx = x1 - x0, dy = y1 - y0;
         double bestT = Double.POSITIVE_INFINITY;
         double hitX=0, hitY=0; boolean invX=false, invY=false;
-
-        // Kiểm tra cạnh ngang (Trên/Dưới) - CÓ KIỂM TRA HƯỚNG
+        // horizontal edges
         if (Math.abs(dy) > EPS) {
-            // Chỉ va chạm cạnh TRÊN nếu bóng đang đi XUỐNG (dy > 0)
-            if (dy > 0) {
-                double tTop = (minYr - y0) / dy; double xAtTop = x0 + tTop * dx;
-                if (tTop >= -EPS && tTop <= 1.0 + EPS && xAtTop >= minXr - EPS && xAtTop <= maxXr + EPS) {
-                    if (tTop < bestT) { bestT = tTop; hitX = xAtTop; hitY = minYr; invX=false; invY=true; }
-                }
+            double tTop = (minYr - y0) / dy; double xAtTop = x0 + tTop * dx;
+            if (tTop >= -EPS && tTop <= 1.0 + EPS && xAtTop >= minXr - EPS && xAtTop <= maxXr + EPS) {
+                if (tTop < bestT) { bestT = tTop; hitX = xAtTop; hitY = minYr; invX=false; invY=true; }
             }
-            // Chỉ va chạm cạnh DƯỚI nếu bóng đang đi LÊN (dy < 0)
-            else {
-                double tBot = (maxYr - y0) / dy; double xAtBot = x0 + tBot * dx;
-                if (tBot >= -EPS && tBot <= 1.0 + EPS && xAtBot >= minXr - EPS && xAtBot <= maxXr + EPS) {
-                    if (tBot < bestT) { bestT = tBot; hitX = xAtBot; hitY = maxYr; invX=false; invY=true; }
-                }
+            double tBot = (maxYr - y0) / dy; double xAtBot = x0 + tBot * dx;
+            if (tBot >= -EPS && tBot <= 1.0 + EPS && xAtBot >= minXr - EPS && xAtBot <= maxXr + EPS) {
+                if (tBot < bestT) { bestT = tBot; hitX = xAtBot; hitY = maxYr; invX=false; invY=true; }
             }
         }
-
-        // Kiểm tra cạnh dọc (Trái/Phải) - CÓ KIỂM TRA HƯỚNG
         if (Math.abs(dx) > EPS) {
-            // Chỉ va chạm cạnh TRÁI nếu bóng đang đi sang PHẢI (dx > 0)
-            if (dx > 0) {
-                double tLeft = (minXr - x0) / dx; double yAtLeft = y0 + tLeft * dy;
-                if (tLeft >= -EPS && tLeft <= 1.0 + EPS && yAtLeft >= minYr - EPS && yAtLeft <= maxYr + EPS) {
-                    if (tLeft < bestT) { bestT = tLeft; hitX = minXr; hitY = yAtLeft; invX=true; invY=false; }
-                    else if (Math.abs(tLeft - bestT) <= EPS) { invX=true; invY=true; } // Va chạm góc
-                }
+            double tLeft = (minXr - x0) / dx; double yAtLeft = y0 + tLeft * dy;
+            if (tLeft >= -EPS && tLeft <= 1.0 + EPS && yAtLeft >= minYr - EPS && yAtLeft <= maxYr + EPS) {
+                if (tLeft < bestT) { bestT = tLeft; hitX = minXr; hitY = yAtLeft; invX=true; invY=false; }
+                else if (Math.abs(tLeft - bestT) <= EPS) { invX=true; invY=true; }
             }
-            // Chỉ va chạm cạnh PHẢI nếu bóng đang đi sang TRÁI (dx < 0)
-            else {
-                double tRight = (maxXr - x0) / dx; double yAtRight = y0 + tRight * dy;
-                if (tRight >= -EPS && tRight <= 1.0 + EPS && yAtRight >= minYr - EPS && yAtRight <= maxYr + EPS) {
-                    if (tRight < bestT) { bestT = tRight; hitX = maxXr; hitY = yAtRight; invX=true; invY=false; }
-                    else if (Math.abs(tRight - bestT) <= EPS) { invX=true; invY=true; }
-                }
+            double tRight = (maxXr - x0) / dx; double yAtRight = y0 + tRight * dy;
+            if (tRight >= -EPS && tRight <= 1.0 + EPS && yAtRight >= minYr - EPS && yAtRight <= maxYr + EPS) {
+                if (tRight < bestT) { bestT = tRight; hitX = maxXr; hitY = yAtRight; invX=true; invY=false; }
+                else if (Math.abs(tRight - bestT) <= EPS) { invX=true; invY=true; }
             }
         }
-
-        // Xử lý trường hợp bóng đã nằm lọt bên trong (Overlap) - Giữ nguyên để đẩy bóng ra
         if (!Double.isFinite(bestT)) {
             if (x1 >= minXr - EPS && x1 <= maxXr + EPS && y1 >= minYr - EPS && y1 <= maxYr + EPS) {
                 double dl = Math.abs(x1 - minXr), dr = Math.abs(maxXr - x1), dt = Math.abs(y1 - minYr), db = Math.abs(maxYr - y1);

@@ -4,12 +4,17 @@ import com.hung.arkanoid.game.GameManager;
 import com.hung.arkanoid.model.entities.Ball;
 import com.hung.arkanoid.model.entities.Paddle;
 import com.hung.arkanoid.model.entities.powerup.PowerUp;
+import com.hung.arkanoid.model.entities.powerup.PowerUpType;
 import com.hung.arkanoid.model.entities.brick.Brick;
+import com.hung.arkanoid.model.entities.brick.BrickType;
 import com.hung.arkanoid.view.effects.Effect;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
+import javafx.scene.text.Font;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,23 +22,52 @@ import java.util.List;
 import java.util.Map;
 
 public class GameView {
-    private final UIResources ui;
+    private final Map<String, Image> imageCache = new HashMap<>();
+    private final Map<String, Image> brickImageCache = new HashMap<>();
 
+    private Image powerUpSpriteSheet;
+    private List<Image> powerUpFrames = new ArrayList<>(); // sliced frames (20)
     private final java.util.Map<com.hung.arkanoid.model.entities.powerup.PowerUpType, java.util.List<Image>> powerUpFramesByType = new java.util.EnumMap<>(com.hung.arkanoid.model.entities.powerup.PowerUpType.class);
-    private List<Image> defaultPowerUpFrames = new ArrayList<>();
+
+    private Image backgroundSprite;
+    private Image borderVerticalImg;
+    private Image pipeImg;
+
+    private Image ballImg;
+    private Image ballShadowImg;
+    private Image paddleStdImg, paddleWideImg, paddleGunImg, paddleMiniImg;
+    private Image torpedoImg;
+
+    private Image blockShadowImg;
+
+    private Image goldBlockImg, grayBlockImg, whiteBlockImg, orangeBlockImg, cyanBlockImg, limeBlockImg, redBlockImg, blueBlockImg, magentaBlockImg, yellowBlockImg;
+
+    private Image explosionMapImg;
+    // UI border images
+    private Image borderPartVerticalImg;
+    private Image ulCornerImg;
+    private Image urCornerImg;
+    private Image topDoorImg;
+    private Image openDoorMapImg;
+
+    // Patterns
+    private ImagePattern bkgPatternFill1, bkgPatternFill2, bkgPatternFill3, bkgPatternFill4, borderPatternFill, pipePatternFill;
 
     // Font used for score and UI text
     private final javafx.scene.text.Font scoreFont = Fonts.emulogic(18);
 
-    private static final double TOP_UI_BAR_HEIGHT = 85.0;
+    // layout constants (match Main.java UI sizes and scale play area to world size)
+    private static final double TOP_UI_BAR_HEIGHT = 85.0; // as in Main.java
     private static final double BOTTOM_UI_BAR_HEIGHT = 40.0;
     private static final double SIDE_BORDER_WIDTH = 22.0;
     private static final double PLAY_AREA_X = SIDE_BORDER_WIDTH;
     private static final double PLAY_AREA_Y = TOP_UI_BAR_HEIGHT;
+    // View (canvas) size is 800x600 created in Main.startGame; play area is inset inside it
     private static final double VIEW_WIDTH = 800.0;
     private static final double VIEW_HEIGHT = 600.0;
     private static final double PLAY_AREA_WIDTH = VIEW_WIDTH - (2 * SIDE_BORDER_WIDTH);
     private static final double PLAY_AREA_HEIGHT = VIEW_HEIGHT - TOP_UI_BAR_HEIGHT - BOTTOM_UI_BAR_HEIGHT;
+    // scale from game world (GameManager.SCREEN_WIDTH/HEIGHT = 560x740) to view play area
     private static final double SCALE_X = PLAY_AREA_WIDTH / com.hung.arkanoid.game.GameManager.SCREEN_WIDTH;
     private static final double SCALE_Y = PLAY_AREA_HEIGHT / com.hung.arkanoid.game.GameManager.SCREEN_HEIGHT;
 
@@ -43,33 +77,100 @@ public class GameView {
     private double nextLevelDoorAlpha = 1.0;
 
     public GameView() {
-        // load shared UI resources once
-        this.ui = UIResources.load();
+        loadNewResources();
+    }
 
-        // prepare power-up sprite frames from the already-loaded bonus block maps
-        java.util.Map<com.hung.arkanoid.model.entities.powerup.PowerUpType, Image> sheets = new java.util.EnumMap<>(com.hung.arkanoid.model.entities.powerup.PowerUpType.class);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.CATCH, ui.bonusBlockCMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.MULTI_BALL, ui.bonusBlockDMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.EXPAND, ui.bonusBlockFMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.LASER, ui.bonusBlockLMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.SLOW_BALL, ui.bonusBlockSMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.EXTRA_LIFE, ui.bonusBlockPMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.FAST_BALL, ui.bonusBlockBMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.FIRE_BALL, ui.bonusBlockBMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.SHRINK, ui.bonusBlockFMapImg);
-        sheets.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.BARRIER, ui.bonusBlockBMapImg);
-
-        for (var entry : sheets.entrySet()) {
-            Image sheet = entry.getValue();
-            if (sheet == null) continue;
-            java.util.List<Image> frames = SpriteManager.sliceFrames(sheet, 5, 4);
-            powerUpFramesByType.put(entry.getKey(), frames);
+    private Image loadImage(String path) {
+        if (path == null) throw new IllegalArgumentException("path must not be null");
+        // extract basename (filename without extension)
+        String name = path;
+        int lastSlash = name.lastIndexOf('/');
+        if (lastSlash >= 0) name = name.substring(lastSlash + 1);
+        if (name.startsWith("/")) name = name.substring(1);
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) name = name.substring(0, dot);
+        // Delegate to SpriteManager (strict) which will throw if missing
+        Image img = SpriteManager.loadResourceVariants(name);
+        if (img == null) { // defensive check; loadResourceVariants should throw on missing
+            throw new IllegalStateException("Missing image: " + name);
         }
-        // default frames: use CATCH set if available
-        defaultPowerUpFrames = powerUpFramesByType.getOrDefault(
-                com.hung.arkanoid.model.entities.powerup.PowerUpType.CATCH,
-                new ArrayList<>()
-        );
+        return img;
+    }
+
+    private void loadNewResources() {
+        // Try loading required assets strictly from resources (/images)
+        try {
+            // Load all bonus map variants and slice them into 5x4 frames, map them to PowerUpType
+            java.util.Map<com.hung.arkanoid.model.entities.powerup.PowerUpType, String> mapping = new java.util.EnumMap<>(com.hung.arkanoid.model.entities.powerup.PowerUpType.class);
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.CATCH, "block_map_bonus_c");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.MULTI_BALL, "block_map_bonus_d");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.EXPAND, "block_map_bonus_f");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.LASER, "block_map_bonus_l");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.SLOW_BALL, "block_map_bonus_s");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.EXTRA_LIFE, "block_map_bonus_p");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.FAST_BALL, "block_map_bonus_b");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.FIRE_BALL, "block_map_bonus_b");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.SHRINK, "block_map_bonus_f");
+            mapping.put(com.hung.arkanoid.model.entities.powerup.PowerUpType.BARRIER, "block_map_bonus_b");
+
+            for (var entry : mapping.entrySet()) {
+                String baseName = entry.getValue();
+                Image sheet = loadImage("/images/" + baseName + ".png");
+                java.util.List<Image> frames = SpriteManager.sliceFrames(sheet, 5, 4);
+                powerUpFramesByType.put(entry.getKey(), frames);
+            }
+            // Populate a generic default frames list (use CATCH mapping guaranteed above)
+            powerUpFrames = powerUpFramesByType.get(com.hung.arkanoid.model.entities.powerup.PowerUpType.CATCH);
+
+            // load paddle/power/block images (strict)
+            ballImg = loadImage("/images/ball.png");
+            ballShadowImg = loadImage("/images/ball_shadow.png");
+            paddleStdImg = loadImage("/images/paddle_std.png");
+            paddleWideImg = loadImage("/images/paddle_wide.png");
+            paddleGunImg = loadImage("/images/paddle_gun.png");
+            paddleMiniImg = loadImage("/images/paddle_std.png");
+            torpedoImg = loadImage("/images/torpedo.png");
+
+            borderVerticalImg = loadImage("/images/borderVertical.png");
+            pipeImg = loadImage("/images/pipe.png");
+            // Load four background pattern variants
+            Image bg1 = loadImage("/images/backgroundPattern_1.png");
+            Image bg2 = loadImage("/images/backgroundPattern_2.png");
+            Image bg3 = loadImage("/images/backgroundPattern_3.png");
+            Image bg4 = loadImage("/images/backgroundPattern_4.png");
+            // Create ImagePatterns for tiled backgrounds (sizes chosen to match original assets)
+            bkgPatternFill1 = new ImagePattern(bg1, 0, 0, 68, 117, false);
+            bkgPatternFill2 = new ImagePattern(bg2, 0, 0, 64, 64, false);
+            bkgPatternFill3 = new ImagePattern(bg3, 0, 0, 64, 64, false);
+            bkgPatternFill4 = new ImagePattern(bg4, 0, 0, 64, 64, false);
+
+            goldBlockImg = loadImage("/images/goldBlock.png");
+            grayBlockImg = loadImage("/images/grayBlock.png");
+            whiteBlockImg = loadImage("/images/whiteBlock.png");
+            orangeBlockImg = loadImage("/images/orangeBlock.png");
+            cyanBlockImg = loadImage("/images/cyanBlock.png");
+            limeBlockImg = loadImage("/images/limeBlock.png");
+            redBlockImg = loadImage("/images/redBlock.png");
+            blueBlockImg = loadImage("/images/blueBlock.png");
+            magentaBlockImg = loadImage("/images/magentaBlock.png");
+            yellowBlockImg = loadImage("/images/yellowBlock.png");
+
+            blockShadowImg = loadImage("/images/block_shadow.png");
+            explosionMapImg = loadImage("/images/explosion_map.png");
+            // load border/ui extras
+            borderPartVerticalImg = loadImage("/images/borderPartVertical.png");
+            ulCornerImg = loadImage("/images/upperLeftCorner.png");
+            urCornerImg = loadImage("/images/upperRightCorner.png");
+            topDoorImg = loadImage("/images/topDoor.png");
+            openDoorMapImg = loadImage("/images/open_door_map.png");
+
+            // create patterns for borders and pipes
+            if (borderVerticalImg != null) borderPatternFill = new ImagePattern(borderVerticalImg, 0, 0, 20, 113, false);
+            if (pipeImg != null) pipePatternFill = new ImagePattern(pipeImg, 0, 0, 5, 17, false);
+        } catch (Exception ex) {
+            // Fail fast: rethrow to indicate missing required resources
+            throw new IllegalStateException("Failed to load required game resources: " + ex.getMessage(), ex);
+        }
     }
 
     // scaling helpers
@@ -86,8 +187,8 @@ public class GameView {
         gc.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
         // draw left/right borders
-        if (ui.borderPatternFill != null) {
-            gc.setFill(ui.borderPatternFill);
+        if (borderPatternFill != null) {
+            gc.setFill(borderPatternFill);
             gc.fillRect(0, 0, SIDE_BORDER_WIDTH, VIEW_HEIGHT);
             gc.fillRect(VIEW_WIDTH - SIDE_BORDER_WIDTH, 0, SIDE_BORDER_WIDTH, VIEW_HEIGHT);
         } else {
@@ -117,7 +218,7 @@ public class GameView {
         int level = 1;
         try { level = gm.getCurrentLevel(); } catch (Exception ignored) {}
         // Round-robin selection across the 4 patterns: (level-1) % 4
-        ImagePattern[] patterns = new ImagePattern[] { ui.bkgPatternFill1, ui.bkgPatternFill2, ui.bkgPatternFill3, ui.bkgPatternFill4 };
+        ImagePattern[] patterns = new ImagePattern[] { bkgPatternFill1, bkgPatternFill2, bkgPatternFill3, bkgPatternFill4 };
         ImagePattern chosen = null;
         if (patterns.length > 0) {
             chosen = patterns[(Math.max(1, level) - 1) % patterns.length];
@@ -151,7 +252,7 @@ public class GameView {
             double by = scaleY(b.getY());
             double bw = scaleW(b.getWidth());
             double bh = scaleH(b.getHeight());
-            if (ui.blockShadowImg != null) gc.drawImage(ui.blockShadowImg, bx + 4, by + 4, bw, bh);
+            if (blockShadowImg != null) gc.drawImage(blockShadowImg, bx + 4, by + 4, bw, bh);
         }
 
         // draw powerups (animated frames)
@@ -162,7 +263,7 @@ public class GameView {
             double ph = scaleH(pu.getHeight());
             Image frame = null;
             // pick frames list for this powerup type
-            java.util.List<Image> framesForType = powerUpFramesByType.getOrDefault(pu.getType(), defaultPowerUpFrames);
+            java.util.List<Image> framesForType = powerUpFramesByType.getOrDefault(pu.getType(), powerUpFrames);
             if (framesForType != null && !framesForType.isEmpty()) {
                 int idx = pu.getAnimationIndex(); if (idx < 0) idx = 0;
                 frame = framesForType.get(idx % framesForType.size());
@@ -185,10 +286,10 @@ public class GameView {
             double bh = scaleH(b.getHeight());
             Image img = null;
             switch (b.getType()) {
-                case UNBREAKABLE -> img = ui.yellowBlockImg; // gold removed; render unbreakable as yellow
-                case STRONG -> img = ui.grayBlockImg;
-                case EXPLOSIVE -> img = ui.redBlockImg;
-                default -> img = ui.blueBlockImg;
+                case UNBREAKABLE -> img = goldBlockImg;
+                case STRONG -> img = grayBlockImg;
+                case EXPLOSIVE -> img = redBlockImg;
+                default -> img = blueBlockImg;
             }
             if (img != null) gc.drawImage(img, bx, by, bw, bh);
             else {
@@ -215,34 +316,13 @@ public class GameView {
             double py = scaleY(p.getY());
             double pw = scaleW(p.getWidth());
             double ph = scaleH(p.getHeight());
-
-            // Xác định bộ frame cần dùng
-            List<Image> currentFrames;
-            if (p.areLasersActive()) {
-                // Ưu tiên 1: Laser
-                currentFrames = paddleGunFrames;
-            } else if (p.getWidth() > Paddle.BASE_WIDTH + 1) {
-                // Ưu tiên 2: Đang mở rộng (Expanded) - kiểm tra chiều rộng thay vì cờ Catch
-                currentFrames = paddleWideFrames;
-            } else {
-                // Mặc định
-                currentFrames = paddleStdFrames;
-            }
-
-            // Lấy frame animation hiện tại
-            Image frameToDraw = null;
-            if (currentFrames != null && !currentFrames.isEmpty()) {
-                int animIndex = p.getAnimationIndex();
-                frameToDraw = currentFrames.get(animIndex % currentFrames.size());
-            }
-
-            // Vẽ paddle
-            if (frameToDraw != null) {
-                gc.drawImage(frameToDraw, px, py, pw, ph);
-            } else {
-                // Fallback nếu không có ảnh
-                gc.setFill(p.areLasersActive() ? Color.RED : Color.CYAN);
-                gc.fillRoundRect(px, py, pw, ph, 10, 10);
+            Image paddleImg = paddleStdImg;
+            if (p.areLasersActive()) paddleImg = paddleGunImg;
+            else if (p.isCatchActive()) paddleImg = paddleWideImg;
+            if (paddleImg != null) gc.drawImage(paddleImg, px, py, pw, ph);
+            else {
+                gc.setFill(Color.DARKGRAY);
+                gc.fillRoundRect(px, py, pw, ph, 6, 6);
             }
         }
 
@@ -252,8 +332,8 @@ public class GameView {
             double by = scaleY(b.getY());
             double bw = scaleW(b.getWidth());
             double bh = scaleH(b.getHeight());
-            if (ui.ballShadowImg != null) gc.drawImage(ui.ballShadowImg, bx + 3, by + 3, bw, bh);
-            if (ui.ballImg != null) gc.drawImage(ui.ballImg, bx, by, bw, bh);
+            if (ballShadowImg != null) gc.drawImage(ballShadowImg, bx + 3, by + 3, bw, bh);
+            if (ballImg != null) gc.drawImage(ballImg, bx, by, bw, bh);
             else {
                 gc.setFill(Color.AQUA);
                 gc.fillOval(bx, by, bw, bh);
@@ -266,31 +346,8 @@ public class GameView {
             double ty = scaleY(t.getY());
             double tw = scaleW(t.getWidth());
             double th = scaleH(t.getHeight());
-            if (ui.torpedoImg != null) gc.drawImage(ui.torpedoImg, tx, ty, tw, th);
+            if (torpedoImg != null) gc.drawImage(torpedoImg, tx, ty, tw, th);
             else { gc.setFill(Color.RED); gc.fillRect(tx, ty, tw, th); }
-        }
-
-        // draw barrier (safety line) if active
-        if (gm.isBarrierActive()) {
-            double barrierYGame = GameManager.BARRIER_Y;
-            double barrierY = scaleY(barrierYGame);
-            double x = PLAY_AREA_X;
-            double w = PLAY_AREA_WIDTH;
-            double h = 6.0; // 6px thick in view space
-            gc.save();
-            gc.setGlobalAlpha(0.8);
-            if (ui.borderPatternFill != null) {
-                gc.setFill(ui.borderPatternFill);
-            } else {
-                gc.setFill(Color.CYAN);
-            }
-            gc.fillRect(x, barrierY, w, h);
-            // glow outline
-            gc.setGlobalAlpha(1.0);
-            gc.setStroke(Color.AQUA);
-            gc.setLineWidth(2.0);
-            gc.strokeRect(x, barrierY, w, h);
-            gc.restore();
         }
 
         gc.restore(); // restore after clipping
@@ -304,7 +361,7 @@ public class GameView {
         final double LIFE_ICON_H = 16.0;
         for (int i = 0; i < lives; i++) {
             double lx = startX + i * 42;
-            if (ui.paddleMiniImg != null) gc.drawImage(ui.paddleMiniImg, lx, y, LIFE_ICON_W, LIFE_ICON_H);
+            if (paddleMiniImg != null) gc.drawImage(paddleMiniImg, lx, y, LIFE_ICON_W, LIFE_ICON_H);
             else {
                 gc.setFill(Color.WHITE);
                 gc.fillRect(startX + i * 42, y, 30, 10);
@@ -329,47 +386,47 @@ public class GameView {
         final double UPPER_INSET = 68.0; // visual offset used by original layout
 
         // Draw top pipes
-        if (ui.pipePatternFill != null && ui.topDoorImg != null) {
-            gc.setFill(ui.pipePatternFill);
+        if (pipePatternFill != null && topDoorImg != null) {
+            gc.setFill(pipePatternFill);
             gc.fillRect(17, 68, 83, 17);
-            double midX = 100 + ui.topDoorImg.getWidth();
-            gc.fillRect(midX, 68, WIDTH - 200 - 2 * ui.topDoorImg.getWidth(), 17);
+            double midX = 100 + topDoorImg.getWidth();
+            gc.fillRect(midX, 68, WIDTH - 200 - 2 * topDoorImg.getWidth(), 17);
             gc.fillRect(WIDTH - 100, 68, 83, 17);
         }
 
         // Draw vertical borders
-        if (ui.borderPatternFill != null) {
-            gc.setFill(ui.borderPatternFill);
+        if (borderPatternFill != null) {
+            gc.setFill(borderPatternFill);
             gc.fillRect(0, UPPER_INSET, 20, HEIGHT - UPPER_INSET);
             gc.fillRect(WIDTH - 20, UPPER_INSET, 20, HEIGHT - UPPER_INSET);
         }
 
         // Draw border corners
-        if (ui.ulCornerImg != null) gc.drawImage(ui.ulCornerImg, 2.5, 67.5);
-        if (ui.urCornerImg != null) gc.drawImage(ui.urCornerImg, WIDTH - (ui.urCornerImg.getWidth()) - 2.5, 67.5);
+        if (ulCornerImg != null) gc.drawImage(ulCornerImg, 2.5, 67.5);
+        if (urCornerImg != null) gc.drawImage(urCornerImg, WIDTH - (urCornerImg.getWidth()) - 2.5, 67.5);
 
         // Draw vertical border parts tiled; if level cleared, animate opening on the right side
         boolean doorOpen = false; // use game state to decide; try checking one frame of openDoorMap presence
         // We can't access GameManager here, so approximate: if openDoorMapImg exists, animate once per render cycle
-        if (ui.borderPartVerticalImg != null) {
+        if (borderPartVerticalImg != null) {
             for (int i = 0; i < 6; i++) {
-                gc.drawImage(ui.borderPartVerticalImg, 0, UPPER_INSET + i * 113);
-                gc.drawImage(ui.borderPartVerticalImg, WIDTH - 20, UPPER_INSET + i * 113);
+                gc.drawImage(borderPartVerticalImg, 0, UPPER_INSET + i * 113);
+                gc.drawImage(borderPartVerticalImg, WIDTH - 20, UPPER_INSET + i * 113);
             }
             // animate bottom-right part if openDoorMap exists
-            if (ui.openDoorMapImg != null) {
+            if (openDoorMapImg != null) {
                 // advance frame every 6 renders
                 openDoorFrameCounter = (openDoorFrameCounter + 1) % 6;
-                if (openDoorFrameCounter == 0) openDoorFrame = (openDoorFrame + 1) % Math.max(1, (int)(ui.openDoorMapImg.getWidth()/20));
+                if (openDoorFrameCounter == 0) openDoorFrame = (openDoorFrame + 1) % Math.max(1, (int)(openDoorMapImg.getWidth()/20));
                 // fade logic
                 if (nextLevelDoorAlpha > 0.01) nextLevelDoorAlpha -= 0.01;
                 gc.save();
                 gc.setGlobalAlpha(nextLevelDoorAlpha);
-                gc.drawImage(ui.borderPartVerticalImg, WIDTH - 20, UPPER_INSET + 565);
+                gc.drawImage(borderPartVerticalImg, WIDTH - 20, UPPER_INSET + 565);
                 gc.restore();
 
                 // draw open door frame from sprite strip
-                gc.drawImage(ui.openDoorMapImg, openDoorFrame * 20, 0, 20, 71, WIDTH - 20, UPPER_INSET + 565, 20, 71);
+                gc.drawImage(openDoorMapImg, openDoorFrame * 20, 0, 20, 71, WIDTH - 20, UPPER_INSET + 565, 20, 71);
             }
         }
     }
