@@ -478,7 +478,7 @@ public class Main extends Application {
         ballImg               = new Image(getClass().getResourceAsStream("ball.png"), 12, 12, true, false);
         ballShadowImg         = new Image(getClass().getResourceAsStream("ball_shadow.png"), 12, 12, true, false);
         torpedoImg            = new Image(getClass().getResourceAsStream("torpedo.png"), 41, 23, true, false);
-        goldBlockImg          = new Image(getClass().getResourceAsStream("goldBlock.png"), 38, 20, true, false);
+        goldBlockImg          = new Image(getClass().getResourceAsStream("yellowBlock.png"), 38, 20, true, false);
         grayBlockImg          = new Image(getClass().getResourceAsStream("grayBlock.png"), 38, 20, true, false);
         whiteBlockImg         = new Image(getClass().getResourceAsStream("whiteBlock.png"), 38, 20, true, false);
         orangeBlockImg        = new Image(getClass().getResourceAsStream("orangeBlock.png"), 38, 20, true, false);
@@ -653,7 +653,7 @@ public class Main extends Application {
                 Block block;
                 final BlockType blockType = level2[iy][ix];
                 switch (blockType) {
-                    case GOLD -> block = new Block(goldBlockImg, INSET + ix * BLOCK_STEP_X, INSET + 110 + iy * BLOCK_STEP_Y, 0, blockType.maxHits, blockType);
+                    // GOLD block removed: do not create GOLD blocks anymore
                     case GRAY -> block = new Block(grayBlockImg, INSET + ix * BLOCK_STEP_X, INSET + 110 + iy * BLOCK_STEP_Y, 0, silverBlockMaxHits, blockType);
                     case WHIT -> block = new Block(whiteBlockImg, INSET + ix * BLOCK_STEP_X, INSET + 110 + iy * BLOCK_STEP_Y, 10, blockType.maxHits, blockType);
                     case ORNG -> block = new Block(orangeBlockImg, INSET + ix * BLOCK_STEP_X, INSET + 110 + iy * BLOCK_STEP_Y, 60, blockType.maxHits, blockType);
@@ -1337,55 +1337,60 @@ public class Main extends Application {
                     // We retrieve the block hit by the ball for the hit sound, block blink & score management:
                     Block block = blocks.stream().filter(b -> b.bounds == ballHit.hitBounds).findFirst().orElse(null);
                     if (block != null) { // Can be null if the ball hit something else (paddle or border)
-                        switch (block.blockType) {
-                            case GOLD -> {
-                                playSound(ballHardBlockSnd);
-                                blinks.add(new Blink(block.bounds.minX, block.bounds.minY));
-                            }
-                            case GRAY -> {
-                                block.hits++;
-                                if (block.hits == block.maxHits) {
-                                    score += level * 50;
-                                    blockCounter += 1;
-                                    block.toBeRemoved = true;
-                                    playSound(ballBlockSnd);
-                                } else {
-                                    playSound(ballHardBlockSnd);
-                                    blinks.add(new Blink(block.bounds.minX, block.bounds.minY));
+                        try {
+                            // GOLD removed: treat other block types as before
+                            switch (block.blockType) {
+                                case GRAY -> {
+                                    block.hits++;
+                                    if (block.hits == block.maxHits) {
+                                        score += level * 50;
+                                        blockCounter += 1;
+                                        block.toBeRemoved = true;
+                                        playSound(ballBlockSnd);
+                                    } else {
+                                        playSound(ballHardBlockSnd);
+                                        blinks.add(new Blink(block.bounds.minX, block.bounds.minY));
+                                    }
                                 }
-                            }
-                            default -> {
-                                block.hits++;
-                                if (block.hits >= block.maxHits) {
-                                    score += block.value;
-                                    blockCounter += 1;
-                                    block.toBeRemoved = true;
-                                    playSound(ballBlockSnd);
-                                    if (blockCounter % BONUS_BLOCK_INTERVAL == 0) {
-                                        bonusBlocks.add(new BonusBlock(block.x, block.y, BonusType.values()[RND.nextInt(BonusType.values().length)]));
+                                default -> {
+                                    block.hits++;
+                                    if (block.hits >= block.maxHits) {
+                                        score += block.value;
+                                        blockCounter += 1;
+                                        block.toBeRemoved = true;
+                                        playSound(ballBlockSnd);
+                                        if (blockCounter % BONUS_BLOCK_INTERVAL == 0) {
+                                            bonusBlocks.add(new BonusBlock(block.x, block.y, BonusType.values()[RND.nextInt(BonusType.values().length)]));
+                                        }
                                     }
                                 }
                             }
+                        } catch (Exception ex) {
+                            // Log and defensively mark block to be removed to avoid repeated crashes
+                            System.err.println("Error processing block hit for block=" + block + ": " + ex.getMessage());
+                            ex.printStackTrace();
+                            try { block.toBeRemoved = true; } catch (Exception ignored) {}
                         }
-                        blockFifo.add(block);
-                        // Checking for bounds
-                        final List<Block> items = blockFifo.getItems();
-                        if (items.size() == 9) {
-                            if (items.get(0).equals(items.get(6)) &&
-                                items.get(1).equals(items.get(5)) &&
-                                items.get(1).equals(items.get(7)) &&
-                                items.get(2).equals(items.get(4)) &&
-                                items.get(2).equals(items.get(8))) {
-                                this.vX += 0.1;
-                            } else if (items.get(0).equals(items.get(8)) &&
-                                       items.get(1).equals(items.get(7)) &&
-                                       items.get(2).equals(items.get(6)) &&
-                                       items.get(3).equals(items.get(5))) {
-                                this.vX += 0.1;
-                            }
-                        }
-                    }
-                }
+
+                         blockFifo.add(block);
+                         // Checking for bounds
+                         final List<Block> items = blockFifo.getItems();
+                         if (items.size() == 9) {
+                             if (items.get(0).equals(items.get(6)) &&
+                                 items.get(1).equals(items.get(5)) &&
+                                 items.get(1).equals(items.get(7)) &&
+                                 items.get(2).equals(items.get(4)) &&
+                                 items.get(2).equals(items.get(8))) {
+                                 this.vX += 0.1;
+                             } else if (items.get(0).equals(items.get(8)) &&
+                                        items.get(1).equals(items.get(7)) &&
+                                        items.get(2).equals(items.get(6)) &&
+                                        items.get(3).equals(items.get(5))) {
+                                 this.vX += 0.1;
+                             }
+                         }
+                     }
+                 }
             }
 
             this.bounds.set(this.x - this.width * 0.5, this.y - this.height * 0.5, this.width, this.height);
@@ -1713,3 +1718,4 @@ public class Main extends Application {
         launch(args);
     }
 }
+

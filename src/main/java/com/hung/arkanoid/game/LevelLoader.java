@@ -41,8 +41,7 @@ public final class LevelLoader {
         // a few strong bricks in middle
         bricks.add(BrickFactory.create("STRONG", startX + 3 * spacingX, startY + 4 * spacingY));
         bricks.add(BrickFactory.create("STRONG", startX + 4 * spacingX, startY + 4 * spacingY));
-        // one powerup guaranteed brick
-        bricks.add(BrickFactory.create("NORMAL", startX + 7 * spacingX, startY + 2 * spacingY)); // replaced POWERUP_GUARANTEED with NORMAL
+        bricks.add(BrickFactory.create("NORMAL", startX + 7 * spacingX, startY + 2 * spacingY));
         return bricks;
     }
 
@@ -76,11 +75,10 @@ public final class LevelLoader {
         double spacingX = Brick.BRICK_WIDTH + 6;
         double spacingY = Brick.BRICK_HEIGHT + 6;
 
-        // dense strong brick field with pockets of powerups
         for (int r = 0; r < 6; r++) {
             for (int c = 0; c < 10; c++) {
                 String key;
-                if (r % 2 == 0 && c % 4 == 0) key = "NORMAL"; // removed POWERUP_GUARANTEED
+                if (r % 2 == 0 && c % 4 == 0) key = "NORMAL";
                 else if (c % 5 == 0) key = "EXPLOSIVE";
                 else key = "STRONG";
                 bricks.add(BrickFactory.create(key, startX + c * spacingX, startY + r * spacingY));
