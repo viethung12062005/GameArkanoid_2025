@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.hung.arkanoid.controller.NameInputController"
+           stylesheets="@/styles/menu.css"
+           style="-fx-background-image: url('/images/backgroundPattern_1.png'); -fx-background-size: cover;">
+
+    <VBox alignment="CENTER" spacing="25" style="-fx-background-color: rgba(0,0,0,0.85);">
+        <padding>
+            <Insets top="40" right="40" bottom="40" left="40"/>
+        </padding>
+
+        <Label text="NEW GAME" styleClass="title-label" />
+
+        <Label text="ENTER YOUR NAME:" styleClass="item-name" style="-fx-text-fill: #00FFFF;"/>
+
+        <TextField fx:id="nameField" promptText="Player Name" alignment="CENTER"
+                   styleClass="retro-text-field" maxWidth="300"/>
+
+        <HBox alignment="CENTER" spacing="30">
+            <Label fx:id="lblStart" text="START" styleClass="menu-item"/>
+            <Label fx:id="lblCancel" text="CANCEL" styleClass="menu-item"/>
+        </HBox>
+    </VBox>
+</StackPane>

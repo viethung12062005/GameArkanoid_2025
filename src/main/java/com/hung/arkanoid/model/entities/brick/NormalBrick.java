@@ -6,33 +6,24 @@ import com.hung.arkanoid.model.entities.powerup.PowerUpType;
 
 import java.util.Random;
 
-/*
- * ============================================================================
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model.entities.brick
- * File Name : BrickFactory.java
- * Created On: 10/25/2025 at 9:19 PM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- *
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the BrickFactory class which is responsible for handling.
- *
- *
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
- */
-
 public class NormalBrick extends Brick {
     private static final Random RNG = new Random();
 
+    // Mặc định là BLUE nếu không chỉ định
+    private String colorStyle = "BLUE";
+
     public NormalBrick(double x, double y) {
+        this(x, y, "BLUE");
+    }
+
+    public NormalBrick(double x, double y, String colorStyle) {
         super(x, y, BrickType.NORMAL);
+        this.colorStyle = colorStyle;
         this.hitPoints = 1;
+    }
+
+    public String getColorStyle() {
+        return colorStyle;
     }
 
     @Override

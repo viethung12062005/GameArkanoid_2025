@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.hung.arkanoid.controller.LevelSelectController"
+           stylesheets="@/styles/menu.css"
+           style="-fx-background-image: url('/images/backgroundPattern_1.png'); -fx-background-size: cover;">
+
+    <!-- Lớp phủ tối màu -->
+    <VBox alignment="CENTER" spacing="30" style="-fx-background-color: rgba(0,0,0,0.85);">
+        <padding>
+            <Insets top="30" right="50" bottom="30" left="50"/>
+        </padding>
+
+        <!-- Tiêu đề -->
+        <Label text="SELECT LEVEL" styleClass="title-label"/>
+
+        <!-- Khu vực chọn Level -->
+        <ScrollPane fitToWidth="true" prefViewportHeight="400" prefViewportWidth="600"
+                    hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                    style="-fx-background: transparent; -fx-background-color: transparent;">
+            <content>
+                <TilePane fx:id="levelSelectBox" hgap="15" vgap="15" prefColumns="8" tileAlignment="CENTER" alignment="CENTER"
+                          style="-fx-background-color: transparent;"/>
+            </content>
+        </ScrollPane>
+
+        <!-- Nút Quay lại -->
+        <Label fx:id="lblBack" text="BACK" styleClass="menu-item"/>
+    </VBox>
+</StackPane>

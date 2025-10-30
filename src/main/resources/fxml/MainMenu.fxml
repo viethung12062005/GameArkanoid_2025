@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-<VBox fx:id="rootMenu" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.hung.arkanoid.controller.MenuController"
-      alignment="TOP_CENTER" spacing="20" stylesheets="@/styles/menu.css">
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20" />
-    </padding>
+<StackPane fx:id="rootMenu" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.hung.arkanoid.controller.MenuController"
+           stylesheets="@/styles/menu.css"
+           style="-fx-background-image: url('/images/backgroundPattern_1.png'); -fx-background-size: cover;">
 
-    <HBox alignment="CENTER">
-        <Label fx:id="titleLabel" text="ARKANOID" />
-    </HBox>
+    <VBox alignment="TOP_CENTER" spacing="20" style="-fx-background-color: rgba(0,0,0,0.85);">
+        <padding>
+            <Insets top="40" right="20" bottom="40" left="20" />
+        </padding>
 
-    <VBox fx:id="levelContainer" spacing="10" alignment="CENTER">
-        <Label text="CHỌN LEVEL" />
-        <ScrollPane fitToWidth="true" prefViewportHeight="180" prefViewportWidth="560" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
-            <content>
-                <TilePane fx:id="levelSelectBox" hgap="8" vgap="8" prefColumns="6" tileAlignment="CENTER" />
-            </content>
-        </ScrollPane>
+        <Label fx:id="titleLabel" text="ARKANOID" styleClass="title-label" style="-fx-font-size: 72px;"/>
+
+        <VBox fx:id="levelContainer" spacing="15" alignment="CENTER">
+            <ScrollPane fitToWidth="true" prefViewportHeight="220" prefViewportWidth="560"
+                        hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                        style="-fx-background: transparent; -fx-background-color: transparent;">
+                <content>
+                    <TilePane fx:id="levelSelectBox" hgap="10" vgap="10" prefColumns="8" tileAlignment="CENTER" alignment="CENTER"
+                              style="-fx-background-color: transparent;"/>
+                </content>
+            </ScrollPane>
+        </VBox>
+
+        <Region prefHeight="20" />
+
+        <VBox alignment="CENTER" spacing="20">
+            <Label fx:id="lblNewGame" text="NEW GAME" styleClass="menu-item"/>
+            <Label fx:id="lblContinue" text="CONTINUE" styleClass="menu-item"/>
+            <Label fx:id="lblScores" text="HIGH SCORES" styleClass="menu-item"/>
+            <Label fx:id="lblInstructions" text="INSTRUCTIONS" styleClass="menu-item"/>
+            <Label fx:id="lblExit" text="EXIT" styleClass="menu-item"/>
+        </VBox>
+
     </VBox>
-
-    <HBox spacing="10" alignment="CENTER">
-        <Button fx:id="startButton" text="START GAME" onAction="#onStartButtonClick" />
-        <Button fx:id="scoresButton" text="HIGH SCORES" onAction="#onScoresButtonClick" />
-    </HBox>
-
-    <VBox VBox.vgrow="ALWAYS" alignment="BOTTOM_CENTER" spacing="8">
-        <HBox spacing="10" alignment="CENTER">
-            <Button fx:id="instructionsButton" text="HƯỚNG DẪN" onAction="#onInstructionsClick" />
-            <Button fx:id="exitButton" text="THOÁT GAME" onAction="#onExitButtonClick" />
-        </HBox>
-    </VBox>
-
-</VBox>
+</StackPane>

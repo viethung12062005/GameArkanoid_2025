@@ -1,9 +1,15 @@
 package com.hung.arkanoid;
 
 import com.hung.arkanoid.controller.MenuController;
+import com.hung.arkanoid.controller.InstructionsController;
+import com.hung.arkanoid.controller.HighScoreController;
 import com.hung.arkanoid.controller.GameController;
 import com.hung.arkanoid.game.GameManager;
 import com.hung.arkanoid.view.GameView;
+import com.hung.arkanoid.game.SaveData;
+import com.hung.arkanoid.controller.NameInputController;
+import com.hung.arkanoid.controller.LevelSelectController;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -13,10 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
-
-import java.io.IOException;
 
 public class Main extends Application {
     private Stage primaryStage;
@@ -27,69 +30,72 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         this.primaryStage = stage;
+        // Load Menu
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainMenu.fxml"));
         Parent root = loader.load();
         MenuController menuController = loader.getController();
         menuController.setMainApp(this);
-        // store controller on the scene's user data for quick access
+
         this.menuScene = new Scene(root, 800, 600);
+        // Store controller để dùng lại khi quay về menu
         this.menuScene.setUserData(menuController);
-        // load menu stylesheet
+
+        // Load CSS nếu cần
         try {
             menuScene.getStylesheets().add(getClass().getResource("/styles/menu.css").toExternalForm());
-        } catch (Exception ex) {
-            System.err.println("Could not load menu stylesheet: " + ex.getMessage());
-        }
+        } catch (Exception e) { System.err.println("Lỗi load CSS menu"); }
 
         primaryStage.setTitle("Arkanoid");
         primaryStage.setScene(menuScene);
         primaryStage.show();
     }
 
-    public void startGame(int levelNumber) {
-        // create game objects
-        GameManager gameManager = new GameManager(levelNumber);
+    // [OVERLOAD 2] Hàm startGame chính có tham số điểm
+    public void startGame(int levelNumber, int currentScore) {
+        // Truyền điểm tích lũy vào GameManager
+        GameManager gameManager = new GameManager(levelNumber, currentScore);
         GameView gameView = new GameView();
         GameController gameController = new GameController(gameManager, this);
 
-        // create canvas and scene
         Canvas canvas = new Canvas(800, 600);
         GraphicsContext gc = canvas.getGraphicsContext2D();
         Group root = new Group(canvas);
         Scene gameScene = new Scene(root, 800, 600, Color.BLACK);
 
-        // input handlers
         gameController.setupInputHandlers(gameScene);
 
-        // game loop
         if (gameLoop != null) gameLoop.stop();
-        // reset lastUpdateNano so the first frame uses a stable small delta
         lastUpdateNano = -1L;
+
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                // compute delta seconds since last frame
-                double deltaSeconds;
-                if (lastUpdateNano <= 0) {
-                    deltaSeconds = 1.0 / 60.0; // assume 60 fps for first frame
-                } else {
-                    deltaSeconds = (now - lastUpdateNano) / 1_000_000_000.0;
-                }
+                double deltaSeconds = (lastUpdateNano <= 0) ? 1.0 / 60.0 : (now - lastUpdateNano) / 1e9;
                 lastUpdateNano = now;
 
-                // let controller update (mouse -> paddle), then game logic
                 gameController.update();
                 gameManager.update(deltaSeconds);
                 gameView.render(gc, gameManager);
 
-                // check state transitions
                 switch (gameManager.getCurrentState()) {
                     case LEVEL_CLEARED -> {
                         stop();
-                        startGame(gameManager.getNextLevel());
+                        // Lấy điểm tích lũy
+                        int accumulatedScore = gameManager.getScore();
+
+                        // Cập nhật High Score ngay lập tức
+                        String currentPlayer = SaveData.getCurrentPlayerName();
+                        SaveData.updateHighScore(currentPlayer, accumulatedScore);
+
+                        // Chuyển sang màn tiếp theo với điểm số ĐƯỢC GIỮ NGUYÊN
+                        startGame(gameManager.getNextLevel(), accumulatedScore);
                     }
                     case GAME_OVER -> {
                         stop();
+                        // Cập nhật High Score lần cuối
+                        String currentPlayer = SaveData.getCurrentPlayerName();
+                        SaveData.updateHighScore(currentPlayer, gameManager.getScore());
+
                         showMenu();
                     }
                     default -> {}
@@ -97,17 +103,11 @@ public class Main extends Application {
             }
         };
         gameLoop.start();
-
         primaryStage.setScene(gameScene);
     }
 
     public void showMenu() {
         if (gameLoop != null) gameLoop.stop();
-        // refresh level buttons using stored controller
-        Object ud = menuScene.getUserData();
-        if (ud instanceof MenuController mc) {
-            mc.refreshLevelButtons();
-        }
         primaryStage.setScene(menuScene);
     }
 
@@ -115,15 +115,79 @@ public class Main extends Application {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Instructions.fxml"));
             Parent root = loader.load();
-            Scene instructionsScene = new Scene(root, 600, 400);
-            Stage instructionsStage = new Stage();
-            instructionsStage.initOwner(primaryStage);
-            instructionsStage.initModality(Modality.APPLICATION_MODAL);
-            instructionsStage.setTitle("Hướng dẫn");
-            instructionsStage.setScene(instructionsScene);
-            instructionsStage.show();
+
+            // Lấy controller và truyền Main vào
+            InstructionsController controller = loader.getController();
+            controller.setMainApp(this);
+
+            // Đặt Scene mới lên primaryStage thay vì tạo cửa sổ mới
+            Scene scene = new Scene(root, 800, 600);
+            // Có thể add CSS chung
+            try { scene.getStylesheets().add(getClass().getResource("/styles/menu.css").toExternalForm()); } catch(Exception e){}
+
+            primaryStage.setScene(scene);
         } catch (Exception ex) {
-            System.err.println("Failed to open instructions: " + ex.getMessage());
+            System.err.println("Không mở được Hướng dẫn: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    public void showLevelSelect() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LevelSelect.fxml"));
+            Parent root = loader.load();
+
+            // Lấy controller và truyền MainApp vào để có thể gọi startGame
+            LevelSelectController controller = loader.getController();
+            controller.setMainApp(this);
+
+            Scene scene = new Scene(root, 800, 600);
+            // Load CSS để đảm bảo giao diện đồng bộ
+            try {
+                scene.getStylesheets().add(getClass().getResource("/styles/menu.css").toExternalForm());
+            } catch (Exception e) {
+                System.err.println("Error loading css: " + e.getMessage());
+            }
+
+            primaryStage.setScene(scene);
+        } catch (Exception ex) {
+            System.err.println("Failed to open Level Select: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    public void showHighScores() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/HighScore.fxml"));
+            Parent root = loader.load();
+
+            // Lấy controller và truyền Main vào
+            HighScoreController controller = loader.getController();
+            controller.setMainApp(this);
+
+            Scene scene = new Scene(root, 800, 600);
+            primaryStage.setScene(scene);
+        } catch (Exception ex) {
+            System.err.println("Không mở được High Scores: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    // Thêm hàm start game từ tham số level
+    public void startGame(int levelNumber) {
+        startGame(levelNumber, 0);
+    }
+
+    public void showNameInput() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/NameInput.fxml"));
+            Parent root = loader.load();
+            NameInputController controller = loader.getController();
+            controller.setMainApp(this);
+            Scene scene = new Scene(root, 800, 600);
+            primaryStage.setScene(scene);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 

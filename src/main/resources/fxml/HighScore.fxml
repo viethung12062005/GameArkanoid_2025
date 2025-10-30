@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.hung.arkanoid.controller.HighScoreController"
+           stylesheets="@/styles/menu.css"
+           style="-fx-background-image: url('/images/backgroundPattern_1.png'); -fx-background-size: cover;">
+
+    <VBox alignment="CENTER" spacing="30" style="-fx-background-color: rgba(0,0,0,0.85);">
+        <padding>
+            <Insets top="30" right="30" bottom="30" left="30"/>
+        </padding>
+
+        <Label text="TOP SCORES" styleClass="title-label"/>
+
+        <GridPane fx:id="highScoreGrid" hgap="10" vgap="15" alignment="CENTER" prefWidth="600">
+            <columnConstraints>
+                <ColumnConstraints percentWidth="20" halignment="CENTER"/>
+                <ColumnConstraints percentWidth="40" halignment="CENTER"/>
+                <ColumnConstraints percentWidth="40" halignment="CENTER"/>
+            </columnConstraints>
+
+            <rowConstraints>
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+                <RowConstraints prefHeight="40" vgrow="SOMETIMES" />
+            </rowConstraints>
+
+            <Label text="RANK" styleClass="tbl-header" GridPane.rowIndex="0" GridPane.columnIndex="0" GridPane.valignment="CENTER"/>
+            <Label text="NAME" styleClass="tbl-header" GridPane.rowIndex="0" GridPane.columnIndex="1" GridPane.valignment="CENTER"/>
+            <Label text="SCORE" styleClass="tbl-header" GridPane.rowIndex="0" GridPane.columnIndex="2" GridPane.valignment="CENTER"/>
+
+        </GridPane>
+
+        <Region VBox.vgrow="ALWAYS" />
+
+        <Label fx:id="lblBack" text="BACK" styleClass="menu-item"/>
+    </VBox>
+</StackPane>

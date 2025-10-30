@@ -6,8 +6,8 @@ import com.hung.arkanoid.model.entities.Ball;
 import com.hung.arkanoid.model.entities.powerup.PowerUpType;
 
 public abstract class Brick extends GameObject {
-    public static final double BRICK_WIDTH = 70;
-    public static final double BRICK_HEIGHT = 25;
+    public static final double BRICK_WIDTH = 54;
+    public static final double BRICK_HEIGHT = 20;
 
     protected int hitPoints;
     protected BrickType type;
