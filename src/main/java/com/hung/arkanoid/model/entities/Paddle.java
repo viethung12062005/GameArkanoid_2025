@@ -1,26 +1,5 @@
 package com.hung.arkanoid.model.entities;
 
-/*
- * ============================================================================  
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model.entities
- * File Name : Paddle.java
- * Created On: 10/26/2025 at 3:06 PM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- * 
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the Paddle class which is responsible for handling
- *     .
- * 
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
- */
-
 import com.hung.arkanoid.model.base.MovableObject;
 
 public class Paddle extends MovableObject {

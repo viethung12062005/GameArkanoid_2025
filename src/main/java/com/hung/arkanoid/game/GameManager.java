@@ -637,7 +637,7 @@ public class GameManager {
 
         // Xử lý trường hợp bóng đã nằm lọt bên trong (Overlap) - Giữ nguyên để đẩy bóng ra
         if (!Double.isFinite(bestT)) {
-            if (x1 >= minXr - EPS && x1 <= maxXr + EPS && y1 >= minYr - EPS && y1 <= maxYr + EPS) {
+            if (x0 >= minXr - EPS && x0 <= maxXr + EPS && y0 >= minYr - EPS && y0 <= maxYr + EPS) {
                 double dl = Math.abs(x1 - minXr), dr = Math.abs(maxXr - x1), dt = Math.abs(y1 - minYr), db = Math.abs(maxYr - y1);
                 double m = Math.min(Math.min(dl, dr), Math.min(dt, db));
                 if (m == dl) { hitX = minXr; hitY = y1; invX = true; invY = false; }
