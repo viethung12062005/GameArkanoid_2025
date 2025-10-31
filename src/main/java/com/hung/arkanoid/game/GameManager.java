@@ -55,19 +55,21 @@ public class GameManager {
     }
     private final List<ActiveEffect> activeEffects = new ArrayList<>();
     private final List<Effect> effects = new ArrayList<>();
-    private final SoundManager soundManager = new SoundManager();
+    private final SoundManager soundManager;
 
-    public GameManager() { this(1, 0); }
+    public GameManager() { this(1, 0, new SoundManager()); }
 
-    public GameManager(int levelNumber) {
-        this(levelNumber, 0);
-    }
+    public GameManager(int levelNumber) { this(levelNumber, 0, new SoundManager()); }
 
-    public GameManager(int levelNumber, int currentScore) {
+    public GameManager(int levelNumber, int currentScore) { this(levelNumber, currentScore, new SoundManager()); }
+
+    // New primary constructor for dependency injection
+    public GameManager(int levelNumber, int currentScore, SoundManager soundManager) {
         this.currentLevel = levelNumber;
         this.score = currentScore; // Khởi tạo điểm với giá trị tích lũy
         this.bricks = LevelLoader.loadLevel(levelNumber);
         this.paddle = new Paddle(350, 550);
+        this.soundManager = soundManager != null ? soundManager : new SoundManager();
         resetBall();
     }
 
@@ -705,3 +707,4 @@ public class GameManager {
         }
     }
 }
+
