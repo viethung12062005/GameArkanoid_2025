@@ -1,31 +1,19 @@
 package com.hung.arkanoid.model.entities;
 
-/*
- * ============================================================================
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model
- * File Name : Ball.java
- * Created On: 10/26/2025 at 2:46 PM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- *
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the Ball class which is responsible for handling
- *     .
- *
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
- */
-
 import com.hung.arkanoid.model.base.GameObject;
 import com.hung.arkanoid.model.base.MovableObject;
 
+/**
+ * Ball entity used in the Arkanoid playfield.
+ * Stores speed, damage, fireball state and attachment to the paddle. The
+ * {@link #update(double)} method moves the ball whenever it is not attached
+ * and keeps the velocity magnitude in sync with the configured speed
+ * multiplier.
+ */
 public class Ball extends MovableObject {
+    /** Base movement speed used as reference for all multipliers. */
     public static final double BASE_SPEED = 300;
+    /** Default ball radius in world units. */
     public static final double BALL_RADIUS = 10;
 
     private double speed;
@@ -35,17 +23,24 @@ public class Ball extends MovableObject {
     private boolean isFireball = false;
     private boolean isAttachedToPaddle = true;
 
+    /**
+     * Creates a ball at the origin with default size, speed and an
+     * initial up-right direction.
+     */
     public Ball() {
         super();
         this.width = BALL_RADIUS * 2;
         this.height = BALL_RADIUS * 2;
         this.speed = BASE_SPEED;
         this.damage = 1;
-        // default direction up-right
-        this.velocityX = speed/Math.sqrt(2);
-        this.velocityY = -speed/Math.sqrt(2);
+        this.velocityX = speed / Math.sqrt(2);
+        this.velocityY = -speed / Math.sqrt(2);
     }
 
+    /**
+     * Creates a ball with the given position, diameter, base speed, damage
+     * and initial velocity vector.
+     */
     public Ball(double x, double y, double diameter, double speed, int damage, double velocityX, double velocityY) {
         super(x, y, diameter, diameter, velocityX, velocityY);
         this.damage = damage;
@@ -76,20 +71,29 @@ public class Ball extends MovableObject {
         this.damage = damage;
     }
 
+    /**
+     * Detaches the ball from the paddle and gives it an initial upward
+     * velocity if it was previously attached.
+     */
     public void launch() {
         if (isAttachedToPaddle) {
             isAttachedToPaddle = false;
             double magnitude = BASE_SPEED * speedMultiplier;
-            // set upward dy to launch
             this.velocityY = -Math.abs(magnitude);
-            // if no horizontal velocity, give a small default
-            if (this.velocityX == 0) this.velocityX = magnitude / Math.sqrt(2);
-            else updateSpeedVectors();
+            if (this.velocityX == 0) {
+                this.velocityX = magnitude / Math.sqrt(2);
+            } else {
+                updateSpeedVectors();
+            }
         }
     }
 
+    /**
+     * Sets a speed multiplier used to scale the base speed. The value is
+     * clamped between 0.5 and 2.0 and the velocity vector is re-normalised
+     * to keep the same direction but adjusted magnitude.
+     */
     public void setSpeedMultiplier(double multiplier) {
-        // clamp between 0.5 and 2.0
         double clamped = Math.max(0.5, Math.min(2.0, multiplier));
         this.speedMultiplier = clamped;
         updateSpeedVectors();
@@ -101,7 +105,6 @@ public class Ball extends MovableObject {
         double vy = this.velocityY;
         double curMag = Math.hypot(vx, vy);
         if (curMag == 0) {
-            // default upwards-right
             this.velocityX = mag / Math.sqrt(2);
             this.velocityY = -mag / Math.sqrt(2);
         } else {
@@ -119,13 +122,16 @@ public class Ball extends MovableObject {
         return isFireball;
     }
 
+    /**
+     * Resets attachment, speed multiplier, fireball state and velocity
+     * back to their default values.
+     */
     public void reset() {
         this.isAttachedToPaddle = true;
         this.speedMultiplier = 1.0;
         this.isFireball = false;
-        // reset velocity to default
-        this.velocityX = BASE_SPEED/Math.sqrt(2);
-        this.velocityY = -BASE_SPEED/Math.sqrt(2);
+        this.velocityX = BASE_SPEED / Math.sqrt(2);
+        this.velocityY = -BASE_SPEED / Math.sqrt(2);
     }
 
     public boolean isAttachedToPaddle() {
@@ -135,13 +141,12 @@ public class Ball extends MovableObject {
     public void setAttachedToPaddle(boolean attached) {
         this.isAttachedToPaddle = attached;
         if (attached) {
-            // zero velocities while attached
             this.velocityX = 0;
             this.velocityY = 0;
         }
     }
 
-    // New velocity accessors used by GameManager for collision response
+    // Velocity accessors used by GameManager for collision response
     public double getVelocityX() { return this.velocityX; }
     public double getVelocityY() { return this.velocityY; }
     public void setVelocityX(double vx) { this.velocityX = vx; }
@@ -155,8 +160,11 @@ public class Ball extends MovableObject {
         this.velocityY = -this.velocityY;
     }
 
+    /**
+     * Simple bounce helper that inverts the vertical component of the
+     * velocity when colliding with another {@link GameObject}.
+     */
     public void bounceOff(GameObject other) {
-        // Simple bounce: invert Y velocity by default
         this.reverseDy();
     }
 
@@ -172,9 +180,12 @@ public class Ball extends MovableObject {
      * (rescaled to BASE_SPEED * speedMultiplier).
      */
     public void applyCollisionResponse(boolean inverseVx, boolean inverseVy, double correctedCenterX, double correctedCenterY) {
-        if (inverseVx) this.velocityX = -this.velocityX;
-        if (inverseVy) this.velocityY = -this.velocityY;
-        // ensure magnitude preserved
+        if (inverseVx) {
+            this.velocityX = -this.velocityX;
+        }
+        if (inverseVy) {
+            this.velocityY = -this.velocityY;
+        }
         double mag = Math.hypot(this.velocityX, this.velocityY);
         double desired = BASE_SPEED * speedMultiplier;
         if (mag != 0) {
@@ -182,7 +193,6 @@ public class Ball extends MovableObject {
             this.velocityX *= scale;
             this.velocityY *= scale;
         } else {
-            // fallback: assign upward velocity
             this.velocityX = desired / Math.sqrt(2);
             this.velocityY = -desired / Math.sqrt(2);
         }
@@ -198,7 +208,6 @@ public class Ball extends MovableObject {
     public void update(double delta) {
         if (!isAttachedToPaddle) {
             super.update(delta);
-            // keep constant speed magnitude according to current multiplier
             double vx = this.velocityX;
             double vy = this.velocityY;
             double mag = Math.hypot(vx, vy);
@@ -212,5 +221,7 @@ public class Ball extends MovableObject {
     }
 
     @Override
-    public void render() {}
+    public void render() {
+        // Rendering is performed by the view layer (GameView).
+    }
 }

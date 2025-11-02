@@ -2,6 +2,11 @@ package com.hung.arkanoid.model.entities;
 
 import com.hung.arkanoid.model.base.MovableObject;
 
+/**
+ * Player-controlled paddle at the bottom of the playfield.
+ * The paddle can move horizontally, change width when power-ups are
+ * applied and expose flags for lasers and catch effects.
+ */
 public class Paddle extends MovableObject {
     public static final double BASE_WIDTH = 100.0;
     public static final double BASE_HEIGHT = 20.0;
@@ -12,6 +17,9 @@ public class Paddle extends MovableObject {
     private boolean lasersActive = false;
     private boolean catchActive = false;
 
+    /**
+     * Creates a paddle with default size located at the origin.
+     */
     public Paddle() {
         super();
         this.speed = 300;
@@ -19,11 +27,18 @@ public class Paddle extends MovableObject {
         this.height = BASE_HEIGHT;
     }
 
+    /**
+     * Creates a paddle with default size positioned at the given
+     * coordinates.
+     */
     public Paddle(double x, double y) {
         super(x, y, BASE_WIDTH, BASE_HEIGHT, 0, 0);
         this.speed = 300;
     }
 
+    /**
+     * Creates a paddle with explicit bounds and movement speed.
+     */
     public Paddle(double x, double y, double width, double height, double speed) {
         super(x, y, width, height, 0, 0);
         this.speed = speed;
@@ -37,32 +52,48 @@ public class Paddle extends MovableObject {
         this.speed = speed;
     }
 
-    // Movement controls using PADDLE_SPEED units per frame (or per update scale)
+    /**
+     * Starts moving the paddle to the left at a fixed speed.
+     */
     public void moveLeft() {
         this.velocityX = -Math.abs(PADDLE_SPEED);
     }
 
+    /**
+     * Starts moving the paddle to the right at a fixed speed.
+     */
     public void moveRight() {
         this.velocityX = Math.abs(PADDLE_SPEED);
     }
 
+    /**
+     * Stops horizontal paddle movement.
+     */
     public void stopMoving() {
         this.velocityX = 0;
     }
 
+    /**
+     * Expands the paddle width while preserving its centre position.
+     */
     public void expand() {
         double centerX = this.x + this.width / 2.0;
         this.width = BASE_WIDTH * 1.5;
-        // keep center position
         this.x = centerX - this.width / 2.0;
     }
 
+    /**
+     * Shrinks the paddle width while preserving its centre position.
+     */
     public void shrink() {
         double centerX = this.x + this.width / 2.0;
         this.width = BASE_WIDTH * 0.75;
         this.x = centerX - this.width / 2.0;
     }
 
+    /**
+     * Resets paddle size and disables lasers and catch effects.
+     */
     public void reset() {
         double centerX = this.x + this.width / 2.0;
         this.width = BASE_WIDTH;
@@ -72,9 +103,8 @@ public class Paddle extends MovableObject {
     }
 
     /**
-     * Reset paddle size only (do not touch lasers/catch flags).
-     * Used when size-changing powerups expire so we don't inadvertently
-     * disable other active effects like lasers.
+     * Resets only the paddle width while keeping active effect flags.
+     * Used when size-changing effects expire.
      */
     public void resetSize() {
         double centerX = this.x + this.width / 2.0;
@@ -88,13 +118,6 @@ public class Paddle extends MovableObject {
 
     public void setLasersActive(boolean lasersActive) {
         this.lasersActive = lasersActive;
-        // Debug log to trace laser activation/deactivation
-        System.out.println("[DEBUG] Paddle.setLasersActive -> " + lasersActive + " at " + System.currentTimeMillis());
-        // Print brief stack trace to identify caller
-        StackTraceElement[] st = Thread.currentThread().getStackTrace();
-        for (int i = 2; i < Math.min(st.length, 8); i++) {
-            System.out.println("    at " + st[i]);
-        }
     }
 
     public boolean isCatchActive() {
@@ -106,7 +129,9 @@ public class Paddle extends MovableObject {
     }
 
     @Override
-    public void render() {}
+    public void render() {
+        // Rendering is handled by the view layer.
+    }
 
     @Override
     public void update(double delta) {

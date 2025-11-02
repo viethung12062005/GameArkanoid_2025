@@ -6,22 +6,32 @@ import com.hung.arkanoid.model.entities.brick.BrickFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class responsible for building brick layouts for each level.
+ * Levels are described as 2D integer arrays where each code maps to a
+ * specific brick type (for example 1 = UNBREAKABLE, 2 = STRONG). The
+ * {@link #loadLevel(int)} method converts these arrays into positioned
+ * {@link Brick} instances centered in the game field.
+ */
 public final class LevelLoader {
+
+    /** Maximum number of distinct level definitions available. */
     public static final int MAX_LEVELS = 32;
 
-    // MAPPING SYSTEM (Dựa trên Constants.java gốc):
-    // 0: NONE
-    // 1: GOLD (-1 hits) -> UNBREAKABLE
-    // 2: GRAY (2 hits)  -> STRONG
-    // 3: RUBY (Red)     -> EXPLOSIVE (Theo yêu cầu của bạn: Gạch đỏ là gạch nổ)
-    // 4: YLLW (Yellow)  -> NORMAL_YELLOW
-    // 5: BLUE (Blue)    -> NORMAL_BLUE
-    // 6: MGNT (Magenta) -> NORMAL_MAGENTA
-    // 7: LIME (Green)   -> NORMAL_LIME
-    // 8: WHIT (White)   -> NORMAL_WHITE
-    // 9: ORNG (Orange)  -> NORMAL_ORANGE
-    // 10: CYAN (Cyan)   -> NORMAL_CYAN
-
+    /*
+     * Level encoding based on the original Constants.java:
+     * 0: NONE (no brick)
+     * 1: UNBREAKABLE (gold)
+     * 2: STRONG (gray)
+     * 3: EXPLOSIVE (ruby / red)
+     * 4: NORMAL_YELLOW
+     * 5: NORMAL_BLUE
+     * 6: NORMAL_MAGENTA
+     * 7: NORMAL_LIME
+     * 8: NORMAL_WHITE
+     * 9: NORMAL_ORANGE
+     * 10: NORMAL_CYAN
+     */
     private static final int[][][] LEVELS_DATA = {
             // LEVEL 1
             {
@@ -265,7 +275,7 @@ public final class LevelLoader {
                     {10,8,4,4,4,4,8,7,7,7,7,8,10},
                     {10,2,4,4,4,4,8,7,7,7,7,2,10},
                     {10,10,2,4,4,4,8,7,7,7,2,10,10},
-                    {10,10,10,2,4,4,8,7,7,2,10,10,10},
+                    {10,10,10,2,4,4,8,7,2,10,10,10,10},
                     {10,10,10,10,2,4,8,7,2,10,10,10,10},
                     {10,10,10,10,10,2,8,2,10,10,10,10,10}
             },
@@ -519,67 +529,84 @@ public final class LevelLoader {
             }
     };
 
-    private LevelLoader() {}
+    private LevelLoader() {
+        // Utility class; prevent instantiation.
+    }
 
+    /**
+     * Loads the brick layout for the given level number.
+     * <p>
+     * Level indices outside the {@code [1, MAX_LEVELS]} range are wrapped
+     * so that, for example, {@code MAX_LEVELS + 1} becomes level 1.
+     *
+     * @param levelNumber 1-based level index
+     * @return list of bricks describing the level layout
+     */
     public static List<Brick> loadLevel(int levelNumber) {
-        // Validate level
-        if (levelNumber <= 0) levelNumber = 1;
-        // Nếu level > MAX_LEVELS, quay vòng lại từ 1
-        if (levelNumber > MAX_LEVELS) levelNumber = ((levelNumber - 1) % MAX_LEVELS) + 1;
+        if (levelNumber <= 0) {
+            levelNumber = 1;
+        }
+        // Wrap level index when it exceeds the configured maximum.
+        if (levelNumber > MAX_LEVELS) {
+            levelNumber = ((levelNumber - 1) % MAX_LEVELS) + 1;
+        }
 
-        // Lấy dữ liệu mảng int tương ứng
-        // index = levelNumber - 1 vì mảng bắt đầu từ 0
+        // Convert the encoded integer matrix into actual bricks.
         int[][] data = LEVELS_DATA[levelNumber - 1];
-
         return createLevelFromData(data);
     }
 
+    /**
+     * Converts a 2D level matrix into a list of {@link Brick} instances
+     * positioned on screen. Each non-zero cell corresponds to one brick
+     * whose type is determined by the mapping comment above.
+     */
     private static List<Brick> createLevelFromData(int[][] data) {
         List<Brick> bricks = new ArrayList<>();
 
-        // KHOẢNG CÁCH VÀ CĂN GIỮA
-        // 1. Spacing như cũ (Brick Width + 6px gap)
+        // Horizontal/vertical spacing between brick origins.
         double spacingX = Brick.BRICK_WIDTH + 6;
         double spacingY = Brick.BRICK_HEIGHT + 6;
 
-        // 2. Tính toán startX để căn giữa màn hình 800px
-        // Số cột tối đa là 13 (theo chuẩn thiết kế Level)
+        // Levels are designed for up to 13 columns; compute a centered startX
+        // on an 800px-wide field and keep the rows vertically offset via startY.
         int cols = 13;
-        double totalLevelWidth = cols * spacingX - 6; // Trừ 6px gap cuối cùng
+        double totalLevelWidth = cols * spacingX - 6;
         double startX = (GameManager.SCREEN_WIDTH - totalLevelWidth) / 2.0;
-
-        // Padding top (có thể chỉnh nếu muốn gạch thấp xuống)
-        double startY = 60;
+        double startY = 60; // vertical padding from the top
 
         for (int r = 0; r < data.length; r++) {
             for (int c = 0; c < data[r].length; c++) {
                 int typeCode = data[r][c];
-                if (typeCode == 0) continue; // 0 = None
+                if (typeCode == 0) {
+                    continue; // 0 = empty cell
+                }
 
                 double x = startX + c * spacingX;
                 double y = startY + r * spacingY;
 
                 String typeKey;
                 switch (typeCode) {
-                    case 1: typeKey = "UNBREAKABLE"; break;
-                    case 2: typeKey = "STRONG"; break;
-                    case 3: typeKey = "EXPLOSIVE"; break; // RUBY -> EXPLOSIVE
-                    case 4: typeKey = "NORMAL_YELLOW"; break;
-                    case 5: typeKey = "NORMAL_BLUE"; break;
-                    case 6: typeKey = "NORMAL_MAGENTA"; break;
-                    case 7: typeKey = "NORMAL_LIME"; break;
-                    case 8: typeKey = "NORMAL_WHITE"; break;
-                    case 9: typeKey = "NORMAL_ORANGE"; break;
-                    case 10: typeKey = "NORMAL_CYAN"; break;
-                    default: typeKey = "NORMAL_BLUE"; break;
+                    case 1:  typeKey = "UNBREAKABLE";      break;
+                    case 2:  typeKey = "STRONG";           break;
+                    case 3:  typeKey = "EXPLOSIVE";        break;
+                    case 4:  typeKey = "NORMAL_YELLOW";    break;
+                    case 5:  typeKey = "NORMAL_BLUE";      break;
+                    case 6:  typeKey = "NORMAL_MAGENTA";   break;
+                    case 7:  typeKey = "NORMAL_LIME";      break;
+                    case 8:  typeKey = "NORMAL_WHITE";     break;
+                    case 9:  typeKey = "NORMAL_ORANGE";    break;
+                    case 10: typeKey = "NORMAL_CYAN";      break;
+                    default: typeKey = "NORMAL_BLUE";      break;
                 }
 
-                Brick b = BrickFactory.create(typeKey, x, y);
-                if (b != null) {
-                    bricks.add(b);
+                Brick brick = BrickFactory.create(typeKey, x, y);
+                if (brick != null) {
+                    bricks.add(brick);
                 }
             }
         }
         return bricks;
     }
 }
+

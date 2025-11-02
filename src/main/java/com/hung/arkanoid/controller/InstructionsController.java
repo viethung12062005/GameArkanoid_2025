@@ -14,11 +14,15 @@ import javafx.util.Duration;
 
 import java.util.List;
 
+/**
+ * Controller for the instructions screen.
+ * It displays animated previews of the different power-up blocks by slicing
+ * sprite sheets into frames and driving a shared {@link Timeline} animation.
+ */
 public class InstructionsController {
 
     private Main mainApp;
 
-    // Các ImageView trong FXML
     @FXML private ImageView imgC;
     @FXML private ImageView imgD;
     @FXML private ImageView imgF;
@@ -27,10 +31,8 @@ public class InstructionsController {
     @FXML private ImageView imgP;
     @FXML private ImageView imgB;
 
-    // Nút quay lại (dạng Label)
     @FXML private Label lblBack;
 
-    // Danh sách frame ảnh cho từng loại
     private List<Image> framesC;
     private List<Image> framesD;
     private List<Image> framesF;
@@ -41,16 +43,25 @@ public class InstructionsController {
 
     private Timeline animationTimeline;
 
+    /**
+     * Injects the main application so that this controller can navigate
+     * back to the main menu.
+     *
+     * @param mainApp main application instance
+     */
     public void setMainApp(Main mainApp) {
         this.mainApp = mainApp;
     }
 
+    /**
+     * Initializes the instructions view by loading all sprite sheets,
+     * starting the animation timeline and configuring the back button.
+     */
     @FXML
     public void initialize() {
         loadAllSprites();
         startAnimation();
 
-        // Thiết lập font và sự kiện cho nút Back
         if (lblBack != null) {
             lblBack.setFont(Fonts.emulogic(24));
             lblBack.setOnMouseClicked(e -> onBackClick());
@@ -59,6 +70,10 @@ public class InstructionsController {
         }
     }
 
+    /**
+     * Loads and slices all power-up sprite sheets into animation frames.
+     * Any failure is logged to stderr but does not crash the screen.
+     */
     private void loadAllSprites() {
         try {
             framesC = loadAndSlice("block_map_bonus_c");
@@ -69,15 +84,26 @@ public class InstructionsController {
             framesP = loadAndSlice("block_map_bonus_p");
             framesB = loadAndSlice("block_map_bonus_b");
         } catch (Exception e) {
-            System.err.println("Lỗi tải sprite hướng dẫn: " + e.getMessage());
+            System.err.println("Failed to load instruction sprites: " + e.getMessage());
         }
     }
 
+    /**
+     * Loads a sprite sheet by base name and slices it into a grid of
+     * 5 columns and 4 rows, returning the individual frames.
+     *
+     * @param baseName base resource name without extension
+     * @return list of extracted animation frames
+     */
     private List<Image> loadAndSlice(String baseName) {
         Image sheet = SpriteManager.loadResourceVariants(baseName);
         return SpriteManager.sliceFrames(sheet, 5, 4);
     }
 
+    /**
+     * Starts a timeline that advances the current frame index at a fixed interval
+     * and updates all preview {@link ImageView} nodes accordingly.
+     */
     private void startAnimation() {
         animationTimeline = new Timeline(new KeyFrame(Duration.millis(60), e -> updateFrames()));
         animationTimeline.setCycleCount(Animation.INDEFINITE);
@@ -101,6 +127,9 @@ public class InstructionsController {
         }
     }
 
+    /**
+     * Stops the animation timeline and returns to the main menu.
+     */
     private void onBackClick() {
         if (animationTimeline != null) {
             animationTimeline.stop();

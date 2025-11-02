@@ -1,112 +1,267 @@
-@startuml Arkanoid Game Class Diagram
+@startuml
 
-' Giao diện và màu sắc cho đẹp hơn
 skinparam classAttributeIconSize 0
-skinparam style strictuml
-skinparam handwritten false
-skinparam note {
-    BackgroundColor #LightYellow
-    BorderColor #Black
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+title Arkanoid Game Architecture
+
+'--- PACKAGES ---
+
+package "com.hung.arkanoid" {
+    class Main extends javafx.application.Application {
+        - primaryStage : Stage
+        - menuScene : Scene
+        - gameLoop : AnimationTimer
+        + start(stage: Stage)
+        + startGame(level: int)
+        + startGame(level: int, currentScore: int)
+        + showMenu()
+        + showLevelSelect()
+        + showHighScores()
+        + showInstructions()
+        + showNameInput()
+    }
 }
 
-' --- Lớp cơ sở ---
-abstract class GameObject {
-  # x: double
-  # y: double
-  # width: double
-  # height: double
-  --
-  + {abstract} update(): void
-  + {abstract} render(): void
+package "com.hung.arkanoid.model.base" {
+    abstract class GameObject {
+        # x : double
+        # y : double
+        # width : double
+        # height : double
+        + update(delta: double)
+        + render()
+        + intersects(other: GameObject) : boolean
+    }
+
+    abstract class MovableObject extends GameObject {
+        # velocityX : double
+        # velocityY : double
+        + move(delta: double)
+    }
 }
 
-abstract class MovableObject extends GameObject {
-  # dx: double
-  # dy: double
-  --
-  + move(): void
+package "com.hung.arkanoid.model.entities" {
+    class Ball extends MovableObject {
+        - speed : double
+        - damage : int
+        - speedMultiplier : double
+        - isFireball : boolean
+        - isAttachedToPaddle : boolean
+        + launch()
+        + applyCollisionResponse(...)
+    }
+
+    class Paddle extends MovableObject {
+        - speed : double
+        - lasersActive : boolean
+        - catchActive : boolean
+        + moveLeft()
+        + moveRight()
+        + expand()
+        + shrink()
+        + fireTorpedo()
+    }
+
+    class Torpedo extends MovableObject {
+        - toBeRemoved : boolean
+    }
 }
 
-' --- Các lớp đối tượng cụ thể ---
-class Paddle extends MovableObject {
-  - speed: double
-  - currentPowerUp: PowerUp
-  --
-  + moveLeft(): void
-  + moveRight(): void
-  + applyPowerUp(powerUp: PowerUp): void
+package "com.hung.arkanoid.model.entities.brick" {
+    enum BrickType {
+        NORMAL
+        STRONG
+        UNBREAKABLE
+        EXPLOSIVE
+    }
+
+    abstract class Brick extends GameObject {
+        # hitPoints : int
+        # type : BrickType
+        # destroyed : boolean
+        + takeHit(gm: GameManager, ball: Ball)
+        + {abstract} getPowerUpToSpawn() : PowerUpType
+        + {abstract} onImpact(gm: GameManager, ball: Ball)
+    }
+
+    class BrickFactory {
+        + {static} create(key: String, x: double, y: double) : Brick
+    }
+
+    class NormalBrick extends Brick
+    class StrongBrick extends Brick
+    class UnbreakableBrick extends Brick
+    class ExplosiveBrick extends Brick
+
+    NormalBrick --|> Brick
+    StrongBrick --|> Brick
+    UnbreakableBrick --|> Brick
+    ExplosiveBrick --|> Brick
 }
 
-class Ball extends MovableObject {
-  - speed: double
-  --
-  + bounceOff(other: GameObject): void
-  + checkCollision(other: GameObject): void
+package "com.hung.arkanoid.model.entities.powerup" {
+    enum PowerUpType {
+        EXPAND, SHRINK, LASER, MULTI_BALL, CATCH
+        SLOW_BALL, FAST_BALL, FIRE_BALL, BARRIER, EXTRA_LIFE
+    }
+
+    abstract class PowerUp extends MovableObject {
+        # type : PowerUpType
+        - consumed : boolean
+        + {abstract} applyEffect(gm: GameManager)
+        + consume()
+    }
+
+    class PowerUpFactory {
+        + {static} createPowerUp(type: PowerUpType, x: double, y: double) : PowerUp
+    }
+
+    class ExpandPaddlePowerUp extends PowerUp
+    class ShrinkPaddlePowerUp extends PowerUp
+    class LaserPowerUp extends PowerUp
+    class MultiBallPowerUp extends PowerUp
+    class CatchBallPowerUp extends PowerUp
+    class SlowBallPowerUp extends PowerUp
+    class FastBallPowerUp extends PowerUp
+    class FireBallPowerUp extends PowerUp
+    class BarrierPowerUp extends PowerUp
+    class ExtraLifePowerUp extends PowerUp
 }
 
-class Brick extends GameObject {
-  - hitPoints: int
-  - type: String
-  --
-  + takeHit(): void
-  + isDestroyed(): boolean
+package "com.hung.arkanoid.game" {
+    enum GameState {
+        PLAYING
+        PAUSED
+        LEVEL_CLEARED
+        GAME_OVER
+    }
+
+    class GameManager {
+        - currentState : GameState
+        - currentLevel : int
+        - score : int
+        - lives : int
+        - balls : List<Ball>
+        - bricks : List<Brick>
+        - powerUps : List<PowerUp>
+        - torpedoes : List<Torpedo>
+        - effects : List<Effect>
+        + update(delta: double)
+        + launchBall()
+        + fireTorpedo()
+        + spawnExtraBalls(count: int)
+        + checkCollisions(...)
+        + explodeBricksAround(source: Brick)
+    }
+
+    class LevelLoader {
+        + {static} MAX_LEVELS : int
+        + {static} loadLevel(levelNumber: int) : List<Brick>
+    }
+
+    class SaveData {
+        + {static} saveMaxLevelUnlocked(level: int)
+        + {static} loadHighScores() : List<HighScoreEntry>
+        + {static} updateHighScore(name: String, score: int)
+    }
+
+    class SoundManager {
+        + load()
+        + play(key: String)
+        + playExplosion()
+        + playLaser()
+    }
 }
 
-class NormalBrick extends Brick {
+package "com.hung.arkanoid.view" {
+    class GameView {
+        + render(gc: GraphicsContext, gm: GameManager)
+        - loadNewResources()
+    }
+
+    class SpriteManager {
+        + {static} loadResourceVariants(baseName: String) : Image
+        + {static} sliceFrames(...) : List<Image>
+    }
+
+    class UIResources {
+        + {static} load() : UIResources
+    }
+
+    class Fonts {
+        + {static} emulogic(size: double) : Font
+    }
 }
 
-class StrongBrick extends Brick {
+package "com.hung.arkanoid.view.effects" {
+    interface Effect {
+        + update()
+        + render(gc: GraphicsContext)
+        + isFinished() : boolean
+    }
+
+    class ExplosionEffect implements Effect
 }
 
-class PowerUp extends GameObject {
-  - type: String
-  - duration: int
-  --
-  + {abstract} applyEffect(paddle: Paddle): void
-  + {abstract} removeEffect(paddle: Paddle): void
+package "com.hung.arkanoid.controller" {
+    class MenuController {
+        + initialize()
+    }
+    class GameController {
+        + setupInputHandlers(scene: Scene)
+        + update()
+        - showPauseOverlay(scene: Scene)
+    }
+    class HighScoreController
+    class InstructionsController
+    class LevelSelectController
+    class NameInputController
 }
 
-class ExpandPaddlePowerUp extends PowerUp {
-  + applyEffect(paddle: Paddle): void
-  + removeEffect(paddle: Paddle): void
-}
+'--- RELATIONSHIPS ---
 
-class FastBallPowerUp extends PowerUp {
-  + applyEffect(paddle: Paddle): void
-  + removeEffect(paddle: Paddle): void
-}
+' Controller dependencies
+Main o-- MenuController
+Main o-- GameController
+Main o-- HighScoreController
+Main o-- InstructionsController
+Main o-- LevelSelectController
+Main o-- NameInputController
 
-' --- Các lớp quản lý ---
-class GameManager {
-  - paddle: Paddle
-  - ball: Ball
-  - bricks: List<Brick>
-  - powerUps: List<PowerUp>
-  - score: int
-  - lives: int
-  - gameState: GameState
-  --
-  + startGame(): void
-  + updateGame(): void
-  + handleInput(): void
-  + checkCollisions(): void
-  + gameOver(): void
-}
+' GameController connects Logic and View
+GameController --> GameManager : controls
+GameController --> Main : navigation
 
-class GameView {
-  + draw(obj: GameObject): void
-}
+' View dependencies
+GameView ..> GameManager : reads state
+GameView ..> SpriteManager : uses
+GameView ..> UIResources : uses
+InstructionsController ..> SpriteManager : uses
 
-' --- Mối quan hệ ---
-GameManager o-- "1" Paddle
-GameManager o-- "1" Ball
-GameManager o-- "many" Brick
-GameManager o-- "many" PowerUp
-GameManager ..> GameView : uses
+' Game Logic Composition
+GameManager "1" *-- "1" Paddle : owns
+GameManager "1" *-- "*" Ball : owns
+GameManager "1" *-- "*" Brick : owns
+GameManager "1" *-- "*" PowerUp : manages
+GameManager "1" *-- "*" Torpedo : manages
+GameManager "1" *-- "*" Effect : manages
+GameManager o-- SoundManager : uses
 
-note right of GameManager
-  Quản lý toàn bộ logic và
-  trạng thái của trò chơi.
-end note
+' Factory Usage
+GameManager ..> PowerUpFactory : uses
+LevelLoader ..> BrickFactory : uses
+GameManager o-- LevelLoader : uses to load level
+
+' Bricks
+BrickFactory ..> Brick : creates
+Brick --> BrickType : has
+
+' PowerUps
+PowerUpFactory ..> PowerUp : creates
+PowerUp --> PowerUpType : has
+PowerUp ..> GameManager : modifies state (applyEffect)
 
 @enduml

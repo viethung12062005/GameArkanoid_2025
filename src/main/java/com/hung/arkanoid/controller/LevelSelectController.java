@@ -9,19 +9,34 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.TilePane;
 
+/**
+ * Controller for the level selection screen.
+ * It renders one label per level in a {@link TilePane}, enabling click
+ * interaction only for levels that are unlocked according to {@link SaveData}.
+ */
 public class LevelSelectController {
     @FXML private TilePane levelSelectBox;
     @FXML private Label lblBack;
 
     private Main mainApp;
 
+    /**
+     * Injects the main application so that this controller can start
+     * a level or navigate back to the main menu.
+     *
+     * @param mainApp main application instance
+     */
     public void setMainApp(Main mainApp) {
         this.mainApp = mainApp;
     }
 
+    /**
+     * Initializes the level selection view by configuring the back button
+     * and populating the level grid based on unlocked progress.
+     */
     @FXML
     public void initialize() {
-        // Setup nút Back
+        // Setup Back button
         if (lblBack != null) {
             lblBack.setFont(Fonts.emulogic(24));
             lblBack.setOnMouseClicked(e -> onBackClick());
@@ -38,8 +53,14 @@ public class LevelSelectController {
         loadLevels();
     }
 
+    /**
+     * Populates the {@link TilePane} with labels representing each level.
+     * Unlocked levels are interactive, while locked levels are disabled.
+     */
     private void loadLevels() {
-        if (levelSelectBox == null) return;
+        if (levelSelectBox == null) {
+            return;
+        }
         levelSelectBox.getChildren().clear();
 
         int maxUnlocked = SaveData.loadMaxLevelUnlocked();
@@ -47,14 +68,14 @@ public class LevelSelectController {
 
         for (int i = 1; i <= totalLevels; i++) {
             Label levelLabel = new Label(String.valueOf(i));
-            levelLabel.getStyleClass().add("level-item"); // Sử dụng style ô vuông
-            levelLabel.setPrefSize(60, 60); // Kích thước ô to hơn chút cho đẹp
-            levelLabel.setFont(Fonts.emulogic(20)); // Font to rõ
+            levelLabel.getStyleClass().add("level-item"); // Use square style for level item
+            levelLabel.setPrefSize(60, 60); // Slightly larger square size for better appearance
+            levelLabel.setFont(Fonts.emulogic(20)); // Clear and large font
 
             final int level = i;
 
             if (i <= maxUnlocked) {
-                // Level đã mở khóa -> Có hiệu ứng và click được
+                // Unlocked level: highlight on hover and start game on click.
                 levelLabel.setOnMouseEntered(e -> {
                     levelLabel.setScaleX(1.1);
                     levelLabel.setScaleY(1.1);
@@ -66,12 +87,12 @@ public class LevelSelectController {
                 levelLabel.setOnMouseClicked(e -> {
                     SoundManager.playLaser();
                     if (mainApp != null) {
-                        // Bắt đầu game tại level đã chọn với điểm 0 (vì chọn màn chơi riêng lẻ)
+                        // Start the selected level as a standalone game with score reset.
                         mainApp.startGame(level);
                     }
                 });
             } else {
-                // Level chưa mở -> Disable
+                // Locked level: visually disabled and not clickable.
                 levelLabel.setDisable(true);
             }
 
@@ -79,6 +100,9 @@ public class LevelSelectController {
         }
     }
 
+    /**
+     * Navigates back to the main menu.
+     */
     private void onBackClick() {
         if (mainApp != null) {
             mainApp.showMenu();

@@ -8,8 +8,6 @@ import javafx.scene.paint.ImagePattern;
  * This centralizes the resource-loading logic that was previously inside Main.loadImages().
  */
 public final class UIResources {
-    public Image logoImg;
-    public Image copyrightImg;
     public Image bkgPatternImg1;
     public Image bkgPatternImg2;
     public Image bkgPatternImg3;
@@ -66,8 +64,6 @@ public final class UIResources {
     public static UIResources load() {
         UIResources r = new UIResources();
         // Use SpriteManager to find resources (robust to path variation)
-        r.logoImg = SpriteManager.loadResourceVariants("arkanoid_logo");
-        r.copyrightImg = SpriteManager.loadResourceVariants("copyright");
         r.bkgPatternImg1 = SpriteManager.loadResourceVariants("backgroundPattern_1");
         r.bkgPatternImg2 = SpriteManager.loadResourceVariants("backgroundPattern_2");
         r.bkgPatternImg3 = SpriteManager.loadResourceVariants("backgroundPattern_3");

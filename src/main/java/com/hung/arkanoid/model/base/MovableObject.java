@@ -1,34 +1,35 @@
 package com.hung.arkanoid.model.base;
 
-/*
- * ============================================================================
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model.entities.brick
- * File Name : BrickFactory.java
- * Created On: 10/25/2025 at 9:19 PM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- *
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the BrickFactory class which is responsible for handling.
- *
- *
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
+/**
+ * Base class for game objects that have a linear velocity.
+ * Extends {@link GameObject} by adding horizontal and vertical velocity
+ * components and a default {@link #update(double)} implementation that
+ * advances the position using these velocities.
  */
-
 public abstract class MovableObject extends GameObject {
+
+    /** Horizontal speed in world units per second. */
     protected double velocityX;
+    /** Vertical speed in world units per second. */
     protected double velocityY;
 
+    /**
+     * Creates a movable object with zero size and zero velocity.
+     */
     public MovableObject() {
         super();
     }
 
+    /**
+     * Creates a movable object with the given bounds and initial velocity.
+     *
+     * @param x         left coordinate
+     * @param y         top coordinate
+     * @param width     object width
+     * @param height    object height
+     * @param velocityX horizontal speed
+     * @param velocityY vertical speed
+     */
     public MovableObject(double x, double y, double width, double height, double velocityX, double velocityY) {
         super(x, y, width, height);
         this.velocityX = velocityX;
@@ -52,13 +53,20 @@ public abstract class MovableObject extends GameObject {
     }
 
     /**
-     * Move object according to velocity and elapsed time delta (in seconds).
+     * Moves the object according to its current velocity and the elapsed
+     * time step.
+     *
+     * @param delta time delta in seconds
      */
     public void move(double delta) {
         this.x += this.velocityX * delta;
         this.y += this.velocityY * delta;
     }
 
+    /**
+     * Default update implementation for movable objects simply delegates
+     * to {@link #move(double)}.
+     */
     @Override
     public void update(double delta) {
         move(delta);

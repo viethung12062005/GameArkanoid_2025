@@ -11,6 +11,12 @@ import javafx.scene.control.Label;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+/**
+ * Controller for the main menu screen.
+ * It wires menu labels to navigation actions such as starting a new game,
+ * continuing via the level select screen, opening the high-score view,
+ * showing instructions, or exiting the application.
+ */
 public class MenuController implements Initializable {
     @FXML private Label lblNewGame;
     @FXML private Label lblContinue;
@@ -20,38 +26,67 @@ public class MenuController implements Initializable {
 
     private Main mainApp;
 
+    /**
+     * Initializes the menu by loading sound resources and wiring each menu
+     * label to its corresponding navigation or system action.
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        try { SoundManager.load(); } catch (Exception e) {}
+        try {
+            SoundManager.load();
+        } catch (Exception ignored) {
+            // If sounds fail to load, the menu still functions but will be silent.
+        }
 
-        // Nút New Game -> Chuyển sang màn hình nhập tên
         setupMenuItem(lblNewGame, () -> {
-            if (mainApp != null) mainApp.showNameInput();
+            if (mainApp != null) {
+                mainApp.showNameInput();
+            }
         });
 
-        // Nút Continue -> Chuyển sang màn hình chọn Level (Level Select)
         setupMenuItem(lblContinue, () -> {
-            if (mainApp != null) mainApp.showLevelSelect();
+            if (mainApp != null) {
+                mainApp.showLevelSelect();
+            }
         });
 
         setupMenuItem(lblScores, () -> {
-            if (mainApp != null) mainApp.showHighScores();
+            if (mainApp != null) {
+                mainApp.showHighScores();
+            }
         });
+
         setupMenuItem(lblInstructions, () -> {
-            if (mainApp != null) mainApp.showInstructions();
+            if (mainApp != null) {
+                mainApp.showInstructions();
+            }
         });
+
         setupMenuItem(lblExit, () -> {
             Platform.exit();
             System.exit(0);
         });
     }
 
+    /**
+     * Injects the main application so this controller can request screen changes.
+     *
+     * @param mainApp main application instance
+     */
     public void setMainApp(Main mainApp) {
         this.mainApp = mainApp;
     }
 
+    /**
+     * Applies common styling and hover/click behavior to a menu label.
+     *
+     * @param label  label to configure
+     * @param action callback executed when the label is clicked
+     */
     private void setupMenuItem(Label label, Runnable action) {
-        if (label == null) return;
+        if (label == null) {
+            return;
+        }
         label.setFont(Fonts.emulogic(24));
         label.setOnMouseEntered(e -> {
             label.setScaleX(1.1);

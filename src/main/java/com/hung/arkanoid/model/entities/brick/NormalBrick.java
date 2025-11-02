@@ -6,10 +6,14 @@ import com.hung.arkanoid.model.entities.powerup.PowerUpType;
 
 import java.util.Random;
 
+/**
+ * Standard breakable brick with a configurable colour style.
+ * Normal bricks have a single hit point and award a small amount of score.
+ * They can randomly spawn power-ups when destroyed.
+ */
 public class NormalBrick extends Brick {
     private static final Random RNG = new Random();
 
-    // Mặc định là BLUE nếu không chỉ định
     private String colorStyle = "BLUE";
 
     public NormalBrick(double x, double y) {
@@ -33,12 +37,12 @@ public class NormalBrick extends Brick {
 
     @Override
     public void onImpact(GameManager gameManager, Ball ball) {
-        // No special behavior
+        // Normal bricks have no additional impact behaviour.
     }
 
     @Override
     public PowerUpType getPowerUpToSpawn() {
-        if (isDestroyed() && RNG.nextDouble() < 0.2) {
+        if (isDestroyed() && RNG.nextDouble() < 0.1) {
             PowerUpType[] types = PowerUpType.values();
             return types[RNG.nextInt(types.length)];
         }
