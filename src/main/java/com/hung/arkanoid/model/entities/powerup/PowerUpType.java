@@ -1,5 +1,8 @@
 package com.hung.arkanoid.model.entities.powerup;
 
+/**
+ * Enumeration of all supported power-up types in the game.
+ */
 public enum PowerUpType {
     EXPAND,
     SHRINK,
@@ -12,4 +15,3 @@ public enum PowerUpType {
     BARRIER,
     EXTRA_LIFE
 }
-

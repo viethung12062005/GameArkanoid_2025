@@ -2,6 +2,9 @@ package com.hung.arkanoid.model.entities.powerup;
 
 import com.hung.arkanoid.game.GameManager;
 
+/**
+ * Power-up that spawns additional balls into the playfield.
+ */
 public class MultiBallPowerUp extends PowerUp {
     public MultiBallPowerUp(double x, double y) {
         super(x, y, PowerUpType.MULTI_BALL);

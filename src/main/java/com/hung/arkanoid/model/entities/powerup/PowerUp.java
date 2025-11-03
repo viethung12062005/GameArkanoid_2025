@@ -1,41 +1,37 @@
 package com.hung.arkanoid.model.entities.powerup;
 
-/*
- * ============================================================================
- * Project   : Arkanoid_OOP2025
- * Package   : com.hung.arkanoid.model.entities.powerup
- * File Name : PowerUp.java
- * Created On: 10/27/2025 at 9:07 AM
- * Author    : Trần Việt Hưng
- * ----------------------------------------------------------------------------
- * Copyright (c) 2025 Hung Tran.
- * All rights reserved.
- *
- * Description:
- *     This file is part of the Arkanoid Game project.
- *     It defines the PowerUp class which is responsible for handling
- *     .
- *
- * Revision History:
- *     Version 1.0  - Initial release.
- * ============================================================================
- */
-
 import com.hung.arkanoid.game.GameManager;
 import com.hung.arkanoid.model.base.MovableObject;
 import com.hung.arkanoid.view.SpriteManager;
 
+/**
+ * Base class for all falling power-up entities.
+ * Power-ups descend vertically from the point where a brick was destroyed
+ * and, once collected by the paddle, apply an effect via
+ * {@link #applyEffect(GameManager)}. Animation frames are provided by
+ * {@link SpriteManager.AnimatedSpriteState}.
+ */
 public abstract class PowerUp extends MovableObject {
+    /** Logical width of a power-up sprite. */
     public static final double POWERUP_WIDTH = 50;
+    /** Logical height of a power-up sprite. */
     public static final double POWERUP_HEIGHT = 25;
+    /** Downward movement speed in world units per second. */
     public static final double FALL_SPEED = 250;
 
     protected PowerUpType type;
     private boolean consumed = false;
 
-    // animation state (5x4 grid typical for bonus map: 5 cols x 4 rows = 20 frames)
+    // Animation state (5 columns x 4 rows = 20 frames in the bonus sprite sheet).
     private final SpriteManager.AnimatedSpriteState animState = new SpriteManager.AnimatedSpriteState(5, 4);
 
+    /**
+     * Creates a new power-up instance at the given coordinates.
+     *
+     * @param x    left coordinate
+     * @param y    top coordinate
+     * @param type logical power-up type
+     */
     public PowerUp(double x, double y, PowerUpType type) {
         // initialize with vertical fall speed
         super(x, y, POWERUP_WIDTH, POWERUP_HEIGHT, 0, FALL_SPEED);
@@ -43,21 +39,22 @@ public abstract class PowerUp extends MovableObject {
     }
 
     /**
-     * Apply the powerup effect to the game.
+     * Applies the concrete power-up effect to the given game manager.
+     * Implementations typically register a timed effect or immediately
+     * change some aspect of the game state.
      */
     public abstract void applyEffect(GameManager gameManager);
 
     @Override
     public void update(double delta) {
-        // use MovableObject's update which moves according to velocity
+        // Move according to velocity and advance sprite animation.
         super.update(delta);
-        // advance animation counters based on elapsed seconds
         animState.update(delta);
     }
 
     @Override
     public void render() {
-        // rendering is handled by the game's view; keep empty here as placeholder
+        // Rendering is handled by the view layer (GameView).
     }
 
     public boolean isConsumed() {
@@ -68,14 +65,17 @@ public abstract class PowerUp extends MovableObject {
         this.consumed = consumed;
     }
 
-    // convenience
+    /** Marks this power-up as consumed by the paddle. */
     public void consume() { setConsumed(true); }
 
     public PowerUpType getType() {
         return type;
     }
 
-    // expose animation index for GameView
+    /**
+     * Returns the current animation frame index used by the view to
+     * slice the appropriate sub-image from the sprite sheet.
+     */
     public int getAnimationIndex() {
         return animState.getFrameIndex();
     }

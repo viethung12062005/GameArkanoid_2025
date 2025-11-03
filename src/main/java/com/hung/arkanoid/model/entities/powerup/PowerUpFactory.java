@@ -1,6 +1,23 @@
 package com.hung.arkanoid.model.entities.powerup;
 
+/**
+ * Factory responsible for instantiating concrete {@link PowerUp}
+ * implementations from a {@link PowerUpType} value.
+ */
 public class PowerUpFactory {
+
+    private PowerUpFactory() {
+        // Utility class; no instances.
+    }
+
+    /**
+     * Creates a new power-up of the given type positioned at (x, y).
+     *
+     * @param type power-up type to create
+     * @param x    left coordinate
+     * @param y    top coordinate
+     * @return a new power-up instance; never {@code null}
+     */
     public static PowerUp createPowerUp(PowerUpType type, double x, double y) {
         return switch (type) {
             case EXPAND -> new ExpandPaddlePowerUp(x, y);
@@ -13,9 +30,6 @@ public class PowerUpFactory {
             case FIRE_BALL -> new FireBallPowerUp(x, y);
             case BARRIER -> new BarrierPowerUp(x, y);
             case EXTRA_LIFE -> new ExtraLifePowerUp(x, y);
-            default -> null;
         };
     }
 }
-
-

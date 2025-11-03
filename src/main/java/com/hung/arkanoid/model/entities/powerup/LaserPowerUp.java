@@ -2,8 +2,11 @@ package com.hung.arkanoid.model.entities.powerup;
 
 import com.hung.arkanoid.game.GameManager;
 
+/**
+ * Power-up that equips the paddle with lasers for a limited duration.
+ */
 public class LaserPowerUp extends PowerUp {
-    private static final double DURATION = 10.0;
+    private static final double DURATION = 10.0; // seconds
 
     public LaserPowerUp(double x, double y) {
         super(x, y, PowerUpType.LASER);
