@@ -1,9 +1,5 @@
 package com.hung.arkanoid.model.entities.brick;
 
-import com.hung.arkanoid.game.GameManager;
-import com.hung.arkanoid.model.entities.Ball;
-import com.hung.arkanoid.model.entities.powerup.PowerUpType;
-
 /*
  * ============================================================================
  * Project   : Arkanoid_OOP2025
@@ -26,23 +22,14 @@ import com.hung.arkanoid.model.entities.powerup.PowerUpType;
  */
 
 public class StrongBrick extends Brick {
-    public StrongBrick(double x, double y) {
-        super(x, y, BrickType.STRONG);
+    public StrongBrick() {
+        super();
+        this.width = 60;
+        this.height = 20;
         this.hitPoints = 3;
     }
 
-    @Override
-    public int getScoreValue() {
-        return 50;
-    }
-
-    @Override
-    public void onImpact(GameManager gameManager, Ball ball) {
-        // No special behavior for now
-    }
-
-    @Override
-    public PowerUpType getPowerUpToSpawn() {
-        return null;
+    public StrongBrick(double x, double y) {
+        super(x, y, 60, 20, 3);
     }
 }
