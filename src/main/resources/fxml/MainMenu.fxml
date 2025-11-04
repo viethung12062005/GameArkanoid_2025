@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.hung.arkanoid.controller.MenuController">
-    <children>
-        <ImageView fitWidth="800" fitHeight="600" preserveRatio="true" />
-        <VBox alignment="CENTER" spacing="20">
-            <children>
-                <Label text="ARKANOID" style="-fx-font-size: 36px; -fx-text-fill: white;" />
-                <Button text="START GAME" fx:id="startButton" onAction="#onStartButtonClick" />
-                <Button text="HIGH SCORES" fx:id="scoresButton" onAction="#onScoresButtonClick" />
-                <Button text="EXIT" fx:id="exitButton" onAction="#onExitButtonClick" />
-            </children>
-        </VBox>
-    </children>
+<StackPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.hung.arkanoid.controller.MenuController" style="-fx-background-color: black;">
+    <VBox alignment="CENTER" spacing="20.0">
+        <Label text="ARKANOID" style="-fx-font-size: 48px; -fx-text-fill: white; -fx-font-weight: bold;" />
+        <!-- padding="10" can't be coerced to Insets in this environment; use CSS padding instead -->
+        <HBox fx:id="levelSelectBox" spacing="10" style="-fx-padding: 10;" />
+        <HBox spacing="10">
+            <Button fx:id="startButton" text="START GAME" onAction="#onStartButtonClick" />
+            <Button fx:id="scoresButton" text="HIGH SCORES" onAction="#onScoresButtonClick" />
+            <Button fx:id="exitButton" text="EXIT" onAction="#onExitButtonClick" />
+        </HBox>
+    </VBox>
 </StackPane>
