@@ -92,12 +92,30 @@ public class Paddle extends MovableObject {
         this.catchActive = false;
     }
 
+    /**
+     * Reset paddle size only (do not touch lasers/catch flags).
+     * Used when size-changing powerups expire so we don't inadvertently
+     * disable other active effects like lasers.
+     */
+    public void resetSize() {
+        double centerX = this.x + this.width / 2.0;
+        this.width = BASE_WIDTH;
+        this.x = centerX - this.width / 2.0;
+    }
+
     public boolean areLasersActive() {
         return lasersActive;
     }
 
     public void setLasersActive(boolean lasersActive) {
         this.lasersActive = lasersActive;
+        // Debug log to trace laser activation/deactivation
+        System.out.println("[DEBUG] Paddle.setLasersActive -> " + lasersActive + " at " + System.currentTimeMillis());
+        // Print brief stack trace to identify caller
+        StackTraceElement[] st = Thread.currentThread().getStackTrace();
+        for (int i = 2; i < Math.min(st.length, 8); i++) {
+            System.out.println("    at " + st[i]);
+        }
     }
 
     public boolean isCatchActive() {
@@ -113,8 +131,6 @@ public class Paddle extends MovableObject {
 
     @Override
     public void update(double delta) {
-        // Move according to velocity and delta (delta is expected in seconds or frame units)
         super.update(delta);
-        // Optionally clamp position to screen bounds (caller can enforce screen width)
     }
 }

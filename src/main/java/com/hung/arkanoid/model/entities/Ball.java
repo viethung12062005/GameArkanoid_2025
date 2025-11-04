@@ -25,8 +25,8 @@ import com.hung.arkanoid.model.base.GameObject;
 import com.hung.arkanoid.model.base.MovableObject;
 
 public class Ball extends MovableObject {
-    public static final double BASE_SPEED = 5.0;
-    public static final double BALL_RADIUS = 8.0;
+    public static final double BASE_SPEED = 200;
+    public static final double BALL_RADIUS = 10;
 
     private double speed;
     private int damage;
@@ -80,15 +80,11 @@ public class Ball extends MovableObject {
         if (isAttachedToPaddle) {
             isAttachedToPaddle = false;
             double magnitude = BASE_SPEED * speedMultiplier;
-            // launch upwards
+            // set upward dy to launch
             this.velocityY = -Math.abs(magnitude);
-            // keep x velocity if previously set, otherwise give a slight x
-            if (this.velocityX == 0) {
-                this.velocityX = magnitude / Math.sqrt(2);
-            } else {
-                // scale to magnitude while preserving direction
-                updateSpeedVectors();
-            }
+            // if no horizontal velocity, give a small default
+            if (this.velocityX == 0) this.velocityX = magnitude / Math.sqrt(2);
+            else updateSpeedVectors();
         }
     }
 
@@ -145,6 +141,12 @@ public class Ball extends MovableObject {
         }
     }
 
+    // New velocity accessors used by GameManager for collision response
+    public double getVelocityX() { return this.velocityX; }
+    public double getVelocityY() { return this.velocityY; }
+    public void setVelocityX(double vx) { this.velocityX = vx; }
+    public void setVelocityY(double vy) { this.velocityY = vy; }
+
     public void reverseDx() {
         this.velocityX = -this.velocityX;
     }
@@ -156,6 +158,36 @@ public class Ball extends MovableObject {
     public void bounceOff(GameObject other) {
         // Simple bounce: invert Y velocity by default
         this.reverseDy();
+    }
+
+    // Center helpers (convenience for swept collision handling)
+    public double getCenterX() { return this.x + this.width * 0.5; }
+    public double getCenterY() { return this.y + this.height * 0.5; }
+    public void setCenterX(double cx) { this.x = cx - this.width * 0.5; }
+    public void setCenterY(double cy) { this.y = cy - this.height * 0.5; }
+
+    /**
+     * Apply collision response: invert velocity components according to flags and
+     * place ball at corrected center position. Velocity magnitude is preserved
+     * (rescaled to BASE_SPEED * speedMultiplier).
+     */
+    public void applyCollisionResponse(boolean inverseVx, boolean inverseVy, double correctedCenterX, double correctedCenterY) {
+        if (inverseVx) this.velocityX = -this.velocityX;
+        if (inverseVy) this.velocityY = -this.velocityY;
+        // ensure magnitude preserved
+        double mag = Math.hypot(this.velocityX, this.velocityY);
+        double desired = BASE_SPEED * speedMultiplier;
+        if (mag != 0) {
+            double scale = desired / mag;
+            this.velocityX *= scale;
+            this.velocityY *= scale;
+        } else {
+            // fallback: assign upward velocity
+            this.velocityX = desired / Math.sqrt(2);
+            this.velocityY = -desired / Math.sqrt(2);
+        }
+        setCenterX(correctedCenterX);
+        setCenterY(correctedCenterY);
     }
 
     public boolean checkCollision(GameObject other) {

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1" fitToWidth="true">
+    <content>
+        <VBox spacing="12" padding="20">
+            <Label text="HƯỚNG DẪN" style="-fx-font-size:24px; -fx-font-weight:bold;" />
+            <GridPane hgap="12" vgap="8">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="40" />
+                    <ColumnConstraints percentWidth="60" />
+                </columnConstraints>
+
+                <RowConstraints />
+                <Label text="Gạch Thường:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                <Label text="Một hit, 10 điểm." GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                <Label text="Gạch Cứng:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <Label text="Ba hit, 50 điểm." GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                <Label text="Gạch Nổ:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                <Label text="Phá hủy các gạch xung quanh khi bị phá." GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                <Label text="Gạch Vàng:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <Label text="Đảm bảo xuất hiện 1 PowerUp khi bị phá." GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                <Label text="PowerUp (E):" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                <Label text="Mở rộng paddle tạm thời." GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                <Label text="PowerUp (L):" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                <Label text="Bật chế độ laser trên paddle." GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                <Label text="PowerUp (F):" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                <Label text="Kích hoạt Fire Ball (phá xuyên qua một số gạch)." GridPane.rowIndex="6" GridPane.columnIndex="1" />
+            </GridPane>
+
+            <HBox alignment="CENTER_RIGHT">
+                <Button text="Đóng" onAction="${event -> ((Stage) ((Button) event.getSource()).getScene().getWindow()).close()}" />
+            </HBox>
+        </VBox>
+    </content>
+</ScrollPane>
