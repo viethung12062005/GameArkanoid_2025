@@ -42,7 +42,7 @@ public final class LevelLoader {
         bricks.add(BrickFactory.create("STRONG", startX + 3 * spacingX, startY + 4 * spacingY));
         bricks.add(BrickFactory.create("STRONG", startX + 4 * spacingX, startY + 4 * spacingY));
         // one powerup guaranteed brick
-        bricks.add(BrickFactory.create("POWERUP_GUARANTEED", startX + 7 * spacingX, startY + 2 * spacingY));
+        bricks.add(BrickFactory.create("NORMAL", startX + 7 * spacingX, startY + 2 * spacingY)); // replaced POWERUP_GUARANTEED with NORMAL
         return bricks;
     }
 
@@ -80,7 +80,7 @@ public final class LevelLoader {
         for (int r = 0; r < 6; r++) {
             for (int c = 0; c < 10; c++) {
                 String key;
-                if (r % 2 == 0 && c % 4 == 0) key = "POWERUP_GUARANTEED";
+                if (r % 2 == 0 && c % 4 == 0) key = "NORMAL"; // removed POWERUP_GUARANTEED
                 else if (c % 5 == 0) key = "EXPLOSIVE";
                 else key = "STRONG";
                 bricks.add(BrickFactory.create(key, startX + c * spacingX, startY + r * spacingY));
@@ -109,7 +109,7 @@ public final class LevelLoader {
                 switch (pattern) {
                     case 0 -> { // stripes: alternating strong/normal rows
                         key = (r % 2 == 0) ? "STRONG" : "NORMAL";
-                        if (c % 7 == 0 && r % 3 == 0) key = "POWERUP_GUARANTEED";
+                        if (c % 7 == 0 && r % 3 == 0) key = "NORMAL"; // removed POWERUP_GUARANTEED
                     }
                     case 1 -> { // checkerboard of normal/strong with some unbreakable anchors
                         key = ((r + c) % 2 == 0) ? "NORMAL" : "STRONG";
@@ -119,7 +119,7 @@ public final class LevelLoader {
                         int centerC = cols / 2;
                         int dist = Math.abs(c - centerC);
                         key = (dist <= Math.max(0, (cols / 8))) ? "STRONG" : "NORMAL";
-                        if (r > rows - 4 && (c % 5 == 0)) key = "POWERUP_GUARANTEED";
+                        if (r > rows - 4 && (c % 5 == 0)) key = "NORMAL"; // removed POWERUP_GUARANTEED
                     }
                     case 3 -> { // columns of alternating types
                         key = (c % 3 == 0) ? "UNBREAKABLE" : (c % 3 == 1) ? "EXPLOSIVE" : "NORMAL";
@@ -127,10 +127,10 @@ public final class LevelLoader {
                     case 4 -> { // border strong, inner normal
                         boolean border = r == 0 || r == rows - 1 || c == 0 || c == cols - 1;
                         key = border ? "STRONG" : "NORMAL";
-                        if (!border && (r + c) % 8 == 0) key = "POWERUP_GUARANTEED";
+                        if (!border && (r + c) % 8 == 0) key = "NORMAL"; // removed POWERUP_GUARANTEED
                     }
                     default -> { // sparse powerups + mix
-                        if (r % 4 == 0 && c % 4 == 0) key = "POWERUP_GUARANTEED";
+                        if (r % 4 == 0 && c % 4 == 0) key = "NORMAL"; // removed POWERUP_GUARANTEED
                         else if ((r + c) % 5 == 0) key = "STRONG";
                         else key = "NORMAL";
                     }
@@ -144,12 +144,7 @@ public final class LevelLoader {
             }
         }
 
-        // Add some guaranteed-powerup bricks for certain ranges
-        if (levelNumber % 5 == 0) {
-            for (int i = 0; i < Math.min(4, cols); i++) {
-                bricks.add(BrickFactory.create("POWERUP_GUARANTEED", startX + i * spacingX, startY + rows * spacingY + spacingY));
-            }
-        }
+        // Removed guaranteed-powerup bricks for higher levels per request
 
         return bricks;
     }

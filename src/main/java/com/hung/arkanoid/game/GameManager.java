@@ -363,30 +363,51 @@ public class GameManager {
             }
             if (nearest == null) break; // no hit
 
-            // process hit with nearestBrick at nearest.hitX/Y
-            Brick brick = nearestBrick;
-            // call onImpact and takeHit
-            brick.onImpact(this, ball);
-            boolean wasDestroyedBefore = brick.isDestroyed();
-            brick.takeHit(this, ball);
-            try {
-                if (brick.isUnbreakable() || (!wasDestroyedBefore && !brick.isDestroyed())) soundManager.playHardBrickHit(); else soundManager.playBlockHit();
-            } catch (Exception ignored) {}
-
-            // reflect velocity components according to flags
-            if (!(ball.isFireball() && !brick.isUnbreakable())) {
-                if (nearest.inverseVx) ball.setVelocityX(-ball.getVelocityX());
-                if (nearest.inverseVy) ball.setVelocityY(-ball.getVelocityY());
+            // process hit(s) with nearestBrick at nearest.hitX/Y
+            // Collect all bricks hit at the same earliest time (to handle corner-double-hits)
+            final double TOL = 1e-6;
+            List<Brick> hitBricks = new ArrayList<>();
+            List<SweepResult> hitResults = new ArrayList<>();
+            for (Brick b2 : bricks) {
+                if (b2.isDestroyed() || (b2.isUnbreakable() && ball.isFireball())) continue;
+                SweepResult r2 = computeSweepAgainstRect(fx0, fy0, fx1, fy1, radius, b2.getX(), b2.getY(), b2.getWidth(), b2.getHeight());
+                if (r2 != null && Math.abs(r2.t - nearest.t) <= TOL) {
+                    hitBricks.add(b2);
+                    hitResults.add(r2);
+                }
             }
 
-            // award points and spawn powerups if destroyed
-            if (brick.isDestroyed()) {
-                score += brick.getScoreValue();
-                PowerUpType t = brick.getPowerUpToSpawn();
-                if (t != null) spawnPowerUp(brick, t);
-                if (brick.getType() == com.hung.arkanoid.model.entities.brick.BrickType.EXPLOSIVE) {
-                    try { soundManager.playExplosion(); } catch (Exception ignored) {}
+            // First, call onImpact for all hit bricks (some may trigger explosions/etc.)
+            for (Brick hb : hitBricks) {
+                try { hb.onImpact(this, ball); } catch (Exception ex) { System.err.println("Error onImpact: " + ex.getMessage()); }
+            }
+
+            // Then apply hits and collect combined reflection flags and scoring
+            boolean combinedInvX = false, combinedInvY = false;
+            for (int i = 0; i < hitBricks.size(); i++) {
+                Brick hb = hitBricks.get(i);
+                SweepResult hr = hitResults.get(i);
+                boolean wasDestroyedBefore = hb.isDestroyed();
+                hb.takeHit(this, ball);
+                if (hr.inverseVx) combinedInvX = true;
+                if (hr.inverseVy) combinedInvY = true;
+                try {
+                    if (hb.isUnbreakable() || (!wasDestroyedBefore && !hb.isDestroyed())) soundManager.playHardBrickHit(); else soundManager.playBlockHit();
+                } catch (Exception ignored) {}
+                if (hb.isDestroyed()) {
+                    score += hb.getScoreValue();
+                    PowerUpType pt = hb.getPowerUpToSpawn();
+                    if (pt != null) spawnPowerUp(hb, pt);
+                    if (hb.getType() == com.hung.arkanoid.model.entities.brick.BrickType.EXPLOSIVE) {
+                        try { soundManager.playExplosion(); } catch (Exception ignored) {}
+                    }
                 }
+            }
+
+            // reflect velocity components according to combined flags
+            if (!(ball.isFireball() && !nearestBrick.isUnbreakable())) {
+                if (combinedInvX) ball.setVelocityX(-ball.getVelocityX());
+                if (combinedInvY) ball.setVelocityY(-ball.getVelocityY());
             }
 
             // prepare for next iteration: move origin to hit point, set next target to corrected point
@@ -625,7 +646,15 @@ public class GameManager {
     }
 
     private void spawnPowerUp(Brick brick, com.hung.arkanoid.model.entities.powerup.PowerUpType type) {
-        com.hung.arkanoid.model.entities.powerup.PowerUp pu = com.hung.arkanoid.model.entities.powerup.PowerUpFactory.createPowerUp(type, brick.getX(), brick.getY());
-        if (pu != null) powerUps.add(pu);
+        double x = brick.getX();
+        double y = brick.getY();
+        try {
+            com.hung.arkanoid.model.entities.powerup.PowerUp pu = com.hung.arkanoid.model.entities.powerup.PowerUpFactory.createPowerUp(type, x, y);
+            if (pu != null) {
+                powerUps.add(pu);
+            }
+        } catch (Exception ex) {
+            System.err.println("Failed to spawn powerup " + type + " at (" + x + "," + y + "): " + ex.getMessage());
+        }
     }
 }

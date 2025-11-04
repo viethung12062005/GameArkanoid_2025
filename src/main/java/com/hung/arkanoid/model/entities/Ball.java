@@ -25,7 +25,7 @@ import com.hung.arkanoid.model.base.GameObject;
 import com.hung.arkanoid.model.base.MovableObject;
 
 public class Ball extends MovableObject {
-    public static final double BASE_SPEED = 200;
+    public static final double BASE_SPEED = 300;
     public static final double BALL_RADIUS = 10;
 
     private double speed;

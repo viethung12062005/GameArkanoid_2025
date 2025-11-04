@@ -24,6 +24,5 @@ public enum BrickType {
     NORMAL,
     STRONG,
     UNBREAKABLE,
-    POWERUP_GUARANTEED,
     EXPLOSIVE
 }

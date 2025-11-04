@@ -66,7 +66,7 @@ public final class UIResources {
     public static UIResources load() {
         UIResources r = new UIResources();
         // Use SpriteManager to find resources (robust to path variation)
-        r.logoImg = SpriteManager.loadResourceVariants("jarkanoid_logo");
+        r.logoImg = SpriteManager.loadResourceVariants("arkanoid_logo");
         r.copyrightImg = SpriteManager.loadResourceVariants("copyright");
         r.bkgPatternImg1 = SpriteManager.loadResourceVariants("backgroundPattern_1");
         r.bkgPatternImg2 = SpriteManager.loadResourceVariants("backgroundPattern_2");
