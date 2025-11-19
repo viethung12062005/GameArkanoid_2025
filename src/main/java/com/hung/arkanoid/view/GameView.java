@@ -19,12 +19,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Renders the main Arkanoid playfield.
+ * <p>
+ * This class translates logical game coordinates from {@link GameManager}
+ * into on-screen pixels, draws the animated background, border, paddle,
+ * balls, bricks, power-ups, HUD text and simple effects.
+ */
 public class GameView {
+    // Image cache is reserved for potential future reuse of images.
     private final Map<String, Image> imageCache = new HashMap<>();
 
+    // Sprite sheet for power-ups and the individual frames sliced from it.
     private Image powerUpSpriteSheet;
     private List<Image> powerUpFrames = new ArrayList<>();
-    private final Map<com.hung.arkanoid.model.entities.powerup.PowerUpType, List<Image>> powerUpFramesByType = new java.util.EnumMap<>(com.hung.arkanoid.model.entities.powerup.PowerUpType.class);
+    private final Map<com.hung.arkanoid.model.entities.powerup.PowerUpType, List<Image>> powerUpFramesByType =
+        new java.util.EnumMap<>(com.hung.arkanoid.model.entities.powerup.PowerUpType.class);
 
     // Images
     private Image borderVerticalImg;
@@ -74,10 +84,21 @@ public class GameView {
     private double nextLevelDoorAlpha = 1.0;
     private boolean nextLevelDoorOpen = false;
 
+    /**
+     * Creates a new view instance and loads all required image resources.
+     */
     public GameView() {
         loadNewResources();
     }
 
+    /**
+     * Loads an image from the classpath using {@link SpriteManager}.
+     * The provided path may include a folder and extension; the base
+     * file name is extracted and resolved under <code>/images</code>.
+     *
+     * @param path resource path, e.g. "/images/ball.png"
+     * @return the loaded image, never {@code null}
+     */
     private Image loadImage(String path) {
         if (path == null) throw new IllegalArgumentException("path must not be null");
         String name = path;
@@ -94,6 +115,11 @@ public class GameView {
         return img;
     }
 
+    /**
+     * Loads all textures and patterns used by the game view.
+     * This mirrors the original resource loading logic from Main.java
+     * but relies on the {@link SpriteManager} helper.
+     */
     private void loadNewResources() {
         try {
             // Load PowerUps
@@ -167,18 +193,27 @@ public class GameView {
         }
     }
 
-    // Scaling Helpers
+    // Scaling helpers from game space (GameManager.SCREEN_WIDTH/HEIGHT)
+    // to view coordinates (800x600 canvas).
     private double scaleX(double gameX) { return (gameX * SCALE_X) + PLAY_AREA_X; }
     private double scaleY(double gameY) { return (gameY * SCALE_Y) + PLAY_AREA_Y; }
     private double scaleW(double gameW) { return gameW * SCALE_X; }
     private double scaleH(double gameH) { return gameH * SCALE_Y; }
 
+    /**
+     * Renders one frame of the game using the state provided by
+     * the {@link GameManager}. This method is called once per
+     * animation tick by the JavaFX application.
+     *
+     * @param gc graphics context of the canvas
+     * @param gm game manager providing current entities and score
+     */
     public void render(GraphicsContext gc, GameManager gm) {
-        // 1. Draw Background Frame (Black void)
+        // 1. Clear the whole canvas with black.
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
-        // 2. Draw Game Background Pattern (Level dependent)
+        // 2. Paint the level-dependent background pattern.
         int level = gm.getCurrentLevel();
         ImagePattern currentPattern = switch ((level - 1) % 4) {
             case 0 -> bkgPatternFill1;
@@ -194,14 +229,16 @@ public class GameView {
             gc.fillRect(PLAY_AREA_X, TOP_UI_BAR_HEIGHT, PLAY_AREA_WIDTH, VIEW_HEIGHT - TOP_UI_BAR_HEIGHT);
         }
 
-        // 3. Draw Background Shadows (Same as reference)
+        // 3. Add subtle shadow strips along the top and left edges
+        //    to match the visual style of the reference implementation.
         gc.setFill(Color.rgb(0, 0, 0, 0.3));
         // Vertical shadow on left side of play area
         gc.fillRect(PLAY_AREA_X, TOP_UI_BAR_HEIGHT, 40, VIEW_HEIGHT - TOP_UI_BAR_HEIGHT);
         // Horizontal shadow at top of play area
         gc.fillRect(PLAY_AREA_X, TOP_UI_BAR_HEIGHT, PLAY_AREA_WIDTH, 20);
 
-        // 4. Draw Shadows (Blocks, Paddle, Ball)
+        // 4. Draw shadows for blocks, power-ups, paddle and balls.
+        //    Shadows are drawn in a clipped region so they never overlap the HUD.
         gc.save();
         // Clip to play area to prevent drawing over UI
         gc.beginPath();
@@ -241,7 +278,7 @@ public class GameView {
         }
         gc.restore();
 
-        // 5. Draw Game Objects (Actual)
+        // 5. Draw all gameplay entities (torpedoes, bricks, power-ups, balls, paddle).
         gc.save();
         gc.beginPath();
         gc.rect(PLAY_AREA_X, PLAY_AREA_Y, PLAY_AREA_WIDTH, PLAY_AREA_HEIGHT);
@@ -300,10 +337,10 @@ public class GameView {
         }
         gc.restore();
 
-        // 6. Draw The Frame (Borders) - Top Layer
+        // 6. Draw frame / border (pipes, vertical borders, doors).
         drawBorder(gc);
 
-        // 7. Draw UI Text (Score, High Score)
+        // 7. Draw HUD text (high score label, score, lives, state overlays).
         // Top Area Black fill for UI
         // Reference: High Score centered, Score right aligned?
         // Main.java: HIGH SCORE center, current Score right aligned
@@ -340,6 +377,11 @@ public class GameView {
         }
     }
 
+    /**
+     * Draws the decorative border, top pipe and level exit door
+     * surrounding the playfield. The coordinates are adapted from
+     * the reference Main.java implementation.
+     */
     private void drawBorder(GraphicsContext gc) {
         // --- Dimensions from Main.java adapted to View ---
         // Main.java: INSET = 22 (Border Width), UPPER_INSET = 85
@@ -424,6 +466,10 @@ public class GameView {
         }
     }
 
+    /**
+     * Returns the appropriate brick sprite based on its type or,
+     * for normal bricks, based on their logical colour.
+     */
     private Image getBrickImage(Brick b) {
         if (b instanceof com.hung.arkanoid.model.entities.brick.NormalBrick nb) {
             return switch (nb.getColorStyle()) {
